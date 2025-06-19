@@ -30,8 +30,8 @@ fieldset > div >* {vertical-align:middle;}
 .anyGrid {padding:1px; display: grid; grid-template-rows: auto; }
 .anyGrid > div {background-color:var(--light-paper-color); margin: 1px;  padding-left: 5px; padding-right: 5px; font-size: 1rem; min-height:10px; }
 
-.anyGrid > .TopRow.Transmit  {background-color:#ffb3b3; font-weight:bold;}
-.anyGrid > .TopRow.Receive  {background-color: #99e699; font-weight:bold;}
+.anyGrid > .TopRow.Tx  {background-color:#ffb3b3; font-weight:bold;}
+.anyGrid > .TopRow.Rx  {background-color: #99e699; font-weight:bold;}
 .anyGrid > .TopRow  {background-color:lightgrey; font-weight:bold;}
 .anyGrid > .active  {background-color:yellow;}
 .anyGrid > .Hl  {background-color:yellow;}
@@ -105,7 +105,6 @@ a:visited {color: blue;}
 <script>
 
  // initialisation and functions to load and save configuration
-  var bandArr=new Array();
   const defaultSquaresList="IO50:99,JO01,JO02,JO03"; // used if squaresList value can't be set from localstorage
   let squaresArr=[]; // contains the full list of every square (level 4, 6, 8, 10) that we want to watch, generated from squaresList
   var squaresList=""; // the human-firendly list of squares to watch
@@ -131,7 +130,7 @@ a:visited {color: blue;}
   
   
   function refreshDisplays(){
-    displayBandActivity();
+    displayAllBandsStats();
   } 
   
   // connect to MQTT feed  
@@ -417,121 +416,89 @@ a:visited {color: blue;}
   return Math.round((numerator / denominator) * 100)+"%";
  }
  
- function displayBandActivity(){
 
-   let bandActivity={};
-   let allCalls = new Set();
-   for (id in connections) {
-     let c=connections[id];
-     allCalls.add(c.rc);
-     allCalls.add(c.sc);
-     if(!bandActivity[c.b]) {bandActivity[c.b]={"txCalls":new Set(),"rxCalls":new Set(), 
-                        		        "homeRxBy":new Set(), "homeRxing":new Set(),
-			     			"meRxBy":new Set(), "meRxing":new Set(),
-                       				"bandModes":new Set() }}  
-     if(c.sd=="home"){
-        if c.sc in bandActivity[c.b].txCalls {
-            bandActivity[c.b].txCalls(c.sc). 
-        } else {
-	      bandActivity[c.b].txCalls.add{(c.sc), 0};
-        }
-	    bandActivity[c.b].homeRxBy.add(c.rc);
-     }
-     if(c.rd=="home"){
-	bandActivity[c.b].rxCalls.add(c.rc); 
-	bandActivity[c.b].homeRxing.add(c.sc);
-     }
-     if(c.sc==myCall){bandActivity[c.b].meRxBy.add(c.rc)}; 
-     if(c.rc==myCall){bandActivity[c.b].meRxing.add(c.sc)}; 
-   }
-
-   for band in bandActivity{
-     topRx={};
-     topTx={};
-     nSpots=0;
-     nSpotted=0;
-     for call in band.txCalls;
-       nSpots= bandActivity.reduce((acc, person) => {
-  if (acc === null || person.age > acc) return person.age;
-  return acc;
-}, null);
-   }
-   
-   //for band in bandwctivity ...
-      // for call in txcalls
-         // count receivers, track max
-      // for call in rxcalls 
-         // count tranmitters, track max
-   
-
-
-
-
-
-   let bandActivityArr= Object.entries(bandActivity);
-   bandActivityArr.sort(([a,],[b,]) => wavelength(b)-wavelength(a));
-
-
-   document.getElementById('nActiveCallsigns').value=allCalls.size;
-	 
+function displayAllBandsStats(){
    let g=document.getElementById("bandsContainer");
    g.innerHTML="<h2>Connectivity by band</h2><br>";
    
-    g.innerHTML="<br>";
-    g.innerHTML+="<div style='float:left'>"
-	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
-     + "<div class='TopRow Transmit'>Transmitters</div>"
-     + "<div>n Calls in Home Squares:</div>"
-     + "<div>are reaching:</div>"
-     + "<div>& I'm reaching:</div>"
-	 + "<div>Percent = </div>"
-     + "</div></div>";
-    bandActivityArr.forEach((bandRecArr) => {     
-     let myCallIsTx=bandRecArr[1].txCalls.intersection(new Set (myCall)).size>0;
-     let myCallIsRx=bandRecArr[1].rxCalls.intersection(new Set(myCall)).size>0;
-     let active= leaderboardsList.has(bandRecArr[0].split('_')[0]+"_*");
-    g.innerHTML+="<div style='float:left'>"
-	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
-     + "<div class='TopRow Transmit'>"+bandRecArr[0]+"</div>"
-     + "<div>"+bandRecArr[1].txCalls.size+"</div>"
-     + "<div>"+bandRecArr[1].homeRxBy.size+"</div>"
-     + "<div>"+bandRecArr[1].meRxBy.size+"</div>"
-     + "<div>"+safePercentage(bandRecArr[1].meRxBy.size, bandRecArr[1].homeRxBy.size) +"</div>"
-     + "</div></div>";
-   });
+   let activeBands=new Set();
+
+   for (id in connections) activeBands.add(connections[id].b);
    
-    g.innerHTML+="<div style='clear:both'><br>";
-    g.innerHTML+="<div style='float:left'>"
-	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
-     + "<div class='TopRow Receive'>Receivers</div>"
-     + "<div>n Calls in Home Squares:</div>"
-     + "<div>are hearing:</div>"
-     + "<div>& I'm hearing:</div>"
-     + "<div>Percent = </div>"
-     + "</div></div>";
-    bandActivityArr.forEach((bandRecArr) => {     
-     let myCallIsTx=bandRecArr[1].txCalls.intersection(new Set (myCall)).size>0;
-     let myCallIsRx=bandRecArr[1].rxCalls.intersection(new Set(myCall)).size>0;
-     let active= leaderboardsList.has(bandRecArr[0].split('_')[0]+"_*");
-    g.innerHTML+="<div style='float:left'>"
-	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
-     + "<div class='TopRow Receive'>"+bandRecArr[0]+"</div>"
-     + "<div>"+bandRecArr[1].rxCalls.size+"</div>"
-     + "<div>"+bandRecArr[1].homeRxing.size+"</div>"
-     + "<div>"+bandRecArr[1].meRxing.size+"</div>"
-     + "<div>"+safePercentage(bandRecArr[1].meRxing.size, bandRecArr[1].homeRxing.size)+"</div>"
-     + "</div></div>";
-   });
+   displayStatsRowLabels("Tx","Transmitters");
+   activeBands.forEach((band) => displayThisBandStats(band, "Tx"));
    
+   displayStatsRowLabels("Rx","Receivers");
+   activeBands.forEach((band) => displayThisBandStats(band, "Rx"));
+
    document.querySelectorAll("div").forEach(div => {
-    if (div.innerText.trim() === "0" | div.innerText.trim() === "0%") {
-     div.classList.add("zero");
-    }
+     if (div.innerText.trim() === "0" | div.innerText.trim() === "0%") {
+       div.classList.add("zero");
+     }
    });
 
- }
- 
+}
 
+function displayStatsRowLabels(RxTx, blockTitle){
+    let g=document.getElementById("bandsContainer");
+	g.innerHTML +="<div style='clear:both'><br>";
+    g.innerHTML +="<br>";
+    g.innerHTML +="<div style='float:left'>"
+	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
+     + "<div class='TopRow "+RxTx+"'>"+blockTitle+"</div>"
+     + "<div>Calls in home squares:</div>"
+     + "<div>reaching: total Nr spots</div>"
+     + "<div>reaching: best Nr spots (% of total)</div>"
+     + "<div>reaching: my Nr spots (% of best)</div>"
+     + "</div></div>";
+}
+
+ function displayThisBandStats(bandName, RxTx){
+   let g=document.getElementById("bandsContainer");
+   let activeHomeCalls = new Set ();
+   for (id in connections) {
+     let c=connections[id];
+     if(c.b == bandName){
+       activeHomeCalls.add(c.sc); 
+       if ((c.sd=="home") && (RxTx=="Tx")) activeHomeCalls.add(c.sc); 
+       if ((c.rd=="home") && (RxTx=="Rx")) activeHomeCalls.add(c.rc); 
+	 }
+   }  
+
+   let nMe = 0;
+   let nMax = 0;
+   let winner = "";
+   let otherEndCallsAggregate = new Set ();
+   activeHomeCalls.forEach((call) => 
+   {
+	 let otherEndCalls=new Set();
+	 for (id in connections) {
+	  let c=connections[id];
+      if (c.sc == call) {otherEndCallsAggregate.add(c.rc); otherEndCalls.add(c.rc);}
+      if (c.rc == call) {otherEndCallsAggregate.add(c.sc); otherEndCalls.add(c.sc);}
+	 }
+	 let nOtherEnd = otherEndCalls.size.toFixed();
+	 if (nOtherEnd > nMax) {
+       winner = call;	  
+ 	   nMax = nOtherEnd;
+	 }
+	 if (call == myCall) nMe = nOtherEnd;
+   });
+   
+   let nActive = activeHomeCalls.size.toFixed();
+   let nOtherAggregate = otherEndCallsAggregate.size.toFixed();
+   
+    g.innerHTML+="<div style='float:left'>"
+	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
+     + "<div class='TopRow '"+RxTx+">"+bandName+"</div>"
+     + "<div>" + nActive.toString() + "</div>"
+     + "<div>" + nOtherAggregate.toString() + "</div>"
+     + "<div title = '" + winner + "'>" + nMax.toString() + " ("+ safePercentage(nMax, nOtherAggregate) + ")</div>"
+     + "<div title = '" + myCall + "'>" + nMe.toString() + " ("+ safePercentage(nMe, nOtherAggregate) + ")</div>"
+     + "</div></div>";
+
+
+}
 
 </script>
 
