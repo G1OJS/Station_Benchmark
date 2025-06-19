@@ -471,8 +471,10 @@ function writeStatsRowLabels(){
 	 let otherEndCalls=new Set();
 	 for (id in connections) {
 	  let c=connections[id];
-      if ((c.sc == call) && (RxTx=="Tx")) {otherEndCallsAggregate.add(c.rc); otherEndCalls.add(c.rc);}
-      if ((c.rc == call) && (RxTx=="Rx")) {otherEndCallsAggregate.add(c.sc); otherEndCalls.add(c.sc);}
+	  if(c.b == bandName){
+        if ((c.sc == call) && (RxTx=="Tx")) {otherEndCallsAggregate.add(c.rc); otherEndCalls.add(c.rc);}
+        if ((c.rc == call) && (RxTx=="Rx")) {otherEndCallsAggregate.add(c.sc); otherEndCalls.add(c.sc);}
+	  }
 	 }
 	 let nOtherEnd = otherEndCalls.size.toFixed();
 	 if (nOtherEnd > nMax) {
