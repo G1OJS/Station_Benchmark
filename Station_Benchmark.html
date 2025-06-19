@@ -476,16 +476,17 @@ function writeStatsRowLabels(){
         if ((c.rc == call) && (RxTx=="Rx")) {otherEndCallsAggregate.add(c.sc); otherEndCalls.add(c.sc);}
 	  }
 	 }
-	 let nOtherEnd = otherEndCalls.size.toFixed();
+	 let nOtherEnd = otherEndCalls.size;
 	 if (nOtherEnd > nMax) {
        winner = call;	  
  	   nMax = nOtherEnd;
 	 }
+	 
 	 if (call == myCall) nMe = nOtherEnd;
    });
    
-   let nActive = activeHomeCalls.size.toFixed();
-   let nOtherAggregate = otherEndCallsAggregate.size.toFixed();
+   let nActive = activeHomeCalls.size;
+   let nOtherAggregate = otherEndCallsAggregate.size;
    
     g.innerHTML+="<div style='float:left'>"
 	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
