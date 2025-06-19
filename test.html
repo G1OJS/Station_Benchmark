@@ -430,8 +430,12 @@ a:visited {color: blue;}
 			     			"meRxBy":new Set(), "meRxing":new Set(),
                        				"bandModes":new Set() }}  
      if(c.sd=="home"){
-	bandActivity[c.b].txCalls.add(c.sc); 
-	bandActivity[c.b].homeRxBy.add(c.rc);
+        if c.sc in bandActivity[c.b].txCalls {
+            
+        } else {
+	      bandActivity[c.b].txCalls.add{(c.sc), 0};
+        }
+	    bandActivity[c.b].homeRxBy.add(c.rc);
      }
      if(c.rd=="home"){
 	bandActivity[c.b].rxCalls.add(c.rc); 
@@ -447,8 +451,10 @@ a:visited {color: blue;}
      nSpots=0;
      nSpotted=0;
      for call in band.txCalls;
-       nSpots=reduce()
-    
+       nSpots= bandActivity.reduce((acc, person) => {
+  if (acc === null || person.age > acc) return person.age;
+  return acc;
+}, null);
    }
    
    //for band in bandwctivity ...
