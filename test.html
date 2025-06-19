@@ -166,7 +166,7 @@ a:visited {color: blue;}
     } );
   }
 
-  // process MQTT messages
+  // process MQTT messages - add to "connections" data structure
   function onMessage(msg){
     // message format:
     // sq:sequence number b:band f:frequency md:mode rp:report (snr) t:seconds since 1970-01-01
@@ -440,6 +440,17 @@ a:visited {color: blue;}
      if(c.sc==myCall){bandActivity[c.b].meRxBy.add(c.rc)}; 
      if(c.rc==myCall){bandActivity[c.b].meRxing.add(c.sc)}; 
    }
+   
+   //for band in bandwctivity ...
+      // for call in txcalls
+         // count receivers, track max
+      // for call in rxcalls 
+         // count tranmitters, track max
+   
+
+
+
+
 
    let bandActivityArr= Object.entries(bandActivity);
    bandActivityArr.sort(([a,],[b,]) => wavelength(b)-wavelength(a));
