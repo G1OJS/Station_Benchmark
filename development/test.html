@@ -8,7 +8,10 @@
 <meta http-equiv="Expires" content="0"/>
 
 <style>
-:root {background-color: #91FCFE; --main-paper-color:#cce5ff; --light-paper-color:#eff7ff; text-align: left; color:#4e4e4e; --tx-color:red; --rx-color:green; }
+:root {background-color: #91FCFE; 
+     --main-paper-color:#cce5ff; 
+	 --light-paper-color:#eff7ff;	 
+	 text-align: left; color:#4e4e4e;}
 div {background-color:var(--main-paper-color); margin: 0px;  padding: 5px;}
 #app {margin:0px; padding:5px; background-color:blue; width:fit-content;} 
 #appTitle {text-align: center; font-size: 3rem;}
@@ -19,9 +22,10 @@ div {background-color:var(--main-paper-color); margin: 0px;  padding: 5px;}
 .innerPanel {border: solid grey 2px; }
 .innerPanel .title {font-size:1.7rem; font-weight:bold;}
 
-fieldset {padding-left:5px; font-size:1rem; width:fit-content;}
+fieldset {padding-left:5px; font-size:1rem; width:fit-content; float:left;}
 fieldset > div {float:left; padding-left:0px;}
 fieldset > div >* {vertical-align:middle;}
+output {background-color:var(--light-paper-color);}
 .button {font-size:0.7rem; color:#404040; padding: 0.2em 0.3em; border-radius: 0.5em; background-color: silver; border: 4px solid grey; cursor: pointer;}
 .button.active {border: 2px solid black; color:blue; font-weight:bold;}
 .button-tiny {font-size:0.6rem; padding: 0.1em 0.1em; border-radius: 0.2em; background-color: silver; border: 1px solid grey; cursor: pointer;  vertical-align:middle;}
@@ -34,7 +38,6 @@ fieldset > div >* {vertical-align:middle;}
 .anyGrid > .TopRow.Rx  {background-color: #99e699; font-weight:bold;}
 .anyGrid > .TopRow  {background-color:lightgrey; font-weight:bold;}
 .anyGrid > .active  {background-color:yellow;}
-.anyGrid > .Hl  {background-color:yellow;}
 .anyGrid > .pad  {background-color:var(--main-paper-color)}
 .anyGrid > .zero {color: #ccc; font-style: italic;}
 
@@ -61,19 +64,19 @@ a:visited {color: blue;}
      <div>               
         <fieldset>
         <legend>Settings</legend>
-	        <p class='hanging20' title='The grid squares containing the other stations you want to benchmark against'>Home squares = <output id='squaresListDisplay'></output> <button type='button' class='button-tiny' onclick='editSquaresList();'>edit</button></p>
-          <p class='hanging20' title = 'Your station callsign'>My callsign: <output id='myCall'></output> <button type='button' class='button-tiny' onclick='editMyCallsigns();'>edit</button></p>
-          Spots purged if older than <output id='purgeMinutes'></output> mins <button type='button' class='button-tiny' onclick='editPurgeMins();'>edit</button>
+	      <p title='The grid squares containing the other stations you want to benchmark against'>Home squares: <output id='squaresListDisplay' onclick='editSquaresList();'></output><output id='nL2sq'></output></p>
+          <p title = 'Your station callsign'>My callsign: <output id='myCall' onclick='editMyCallsigns();'></output></p>
+          Spots purged if older than <output id='purgeMinutes' onclick='editPurgeMins()';></output> mins 
            <button type='button' class='button-tiny' onclick='purgeAllSpots(); refreshDisplays();'>Purge All Now</button><br>
+        </fieldset>
+        <fieldset id=modeSelect >
+         <legend>Mode</legend>
+         <!-- written by script -->
         </fieldset>
      </div>
    </div>
    <div id="innerScreen">
-     <div>
-     Home definition covers <output id='nL2sq'></output> top level squares, containing total of <output id='nActiveCallsigns'></output> active callsigns across all bands and modes.
-     </div>
      <div class="innerPanel" id="bandsContainer">
-     </div>  
    </div>
 
    <div id="creditsGrid">
@@ -110,15 +113,13 @@ a:visited {color: blue;}
   var squaresList=""; // the human-firendly list of squares to watch
   var refresh_mSeconds=5000;
   var purgeMinutes=5;
-  var myCalls="";
   var nL4sq=0;
   var mqttClient=null;	
   var tStart=Date.now(); // software start time
   var connections = {};
   var connectionsAdded=0;
   var connectionsPurged=0;
-  var leaderboardsList=new Set();
-
+  var watchedMode="FT8";
 
   loadConfig();
   refreshDisplays();
@@ -128,9 +129,9 @@ a:visited {color: blue;}
 
   connectToFeed();
   
-  
   function refreshDisplays(){
-    displayAllBandsStats();
+   writeAllBandsStats();
+   writeModeButtons();
   } 
   
   // connect to MQTT feed  
@@ -393,8 +394,26 @@ a:visited {color: blue;}
       alert("Please enter a comma-separated list of valid squares LLNN or smaller.\n\nYou entered "+resp);
     }
   }
+  
+  function writeModeButtons(){
+    let activeModes=new Set();
+    for (id in connections) {activeModes.add(connections[id].md);}
+	let el=document.getElementById("modeSelect");
+	el.innerHTML="<legend>Mode</legend>";
+	activeModes.forEach((md) => {
+	  let modeBtn = "<button type='button' class='button' name='modeSelectBtn' id='"+md+"' onclick='setMode(&quot;"+md+"&quot;)'> "+md+" </button> "
+	  el.innerHTML += modeBtn;
+	  if(md == watchedMode) document.getElementById(md).classList.add('active');
+	});
+	writeAllBandsStats();
+  }
  
- function updateAppTop(){
+  function setMode(mode){
+    watchedMode = mode;
+	writeModeButtons();
+  }
+ 
+  function updateAppTop(){
     var now = new Date;
     var utc_timestamp=get_utc_timestamp(now);
     var runningmins=Math.trunc(((now-tStart)/1000) / 60);
@@ -402,8 +421,8 @@ a:visited {color: blue;}
     document.getElementById("clock").innerHTML=utc_timestamp.split(" ")[1]+"&nbsp;"+utc_timestamp.split(" ")[2];
     document.getElementById("runningMins").value=runningmins;
     document.getElementById("connectionsIn").value=connectionsAdded-connectionsPurged;
-	document.getElementById('nL2sq').value=(nL4sq/100).toFixed(2);
-}
+	document.getElementById('nL2sq').value=" (" + (nL4sq/100).toFixed(2) + " TL sqs)";
+  }
 
  function wavelength(band){
    let wl=parseInt(band.split("m")[0]);
@@ -412,59 +431,57 @@ a:visited {color: blue;}
 	
 	
  function safePercentage(numerator, denominator) {
-  if (denominator === 0) return "0%";
+  if (denominator == 0) return "0%";
   return Math.round((numerator / denominator) * 100)+"%";
  }
  
 
-function displayAllBandsStats(){
+function writeAllBandsStats(){
+   let activeBands = new Set();
+   for (id in connections) {
+     if(connections[id].md == watchedMode) activeBands.add(connections[id].b);
+   }
+   let activeBandsArr = Array.from(activeBands).sort((a,b) =>  wavelength(b)-wavelength(a));
+   
    let g=document.getElementById("bandsContainer");
-   g.innerHTML="<h2>Connectivity by band</h2><br>";
+   g.innerHTML="";
    
-   let activeBands=new Set();
-
-   for (id in connections) activeBands.add(connections[id].b);
+   g.innerHTML += "<h3>Transmitting</h3>";   
+   writeStatsRowLabels("Tx","Transmitters");
+   activeBandsArr.forEach((band) => writeThisBandStats(band, "Tx"));
    
-   displayStatsRowLabels("Tx","Transmitters");
-   activeBands.forEach((band) => displayThisBandStats(band, "Tx"));
-   
-   displayStatsRowLabels("Rx","Receivers");
-   activeBands.forEach((band) => displayThisBandStats(band, "Rx"));
+   g.innerHTML +="<div style='clear:both'>";
+   g.innerHTML += "<h3>Receiving</h3>";   
+   writeStatsRowLabels("Rx","Receivers");
+   activeBandsArr.forEach((band) => writeThisBandStats(band, "Rx"));
 
    document.querySelectorAll("div").forEach(div => {
-     if (div.innerText.trim() === "0" | div.innerText.trim() === "0%") {
-       div.classList.add("zero");
-     }
+     if (div.innerText.trim() === "0" | div.innerText.trim() === "0%") {div.classList.add("zero");}
    });
-
 }
 
-function displayStatsRowLabels(RxTx, blockTitle){
+function writeStatsRowLabels(){
     let g=document.getElementById("bandsContainer");
-	g.innerHTML +="<div style='clear:both'><br>";
-    g.innerHTML +="<br>";
     g.innerHTML +="<div style='float:left'>"
-	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
-     + "<div class='TopRow "+RxTx+"'>"+blockTitle+"</div>"
-     + "<div>Calls in home squares:</div>"
-     + "<div>reaching: total Nr spots</div>"
-     + "<div>reaching: best Nr spots (% of total)</div>"
-     + "<div>reaching: my Nr spots (% of best)</div>"
+	 + "<div class = 'anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
+     + "<div class = 'TopRow' title = 'Band (number of callsigns active in home squares on this band)'>Band (n. calls)</div>"
+     + "<div title = 'Number of spots generated by all callsigns in home, as a group'>Total spots</div>"
+     + "<div title = 'Number of spots generated by best performing callsign in home'>Leader</div>"
+     + "<div title = 'Number of spots generated by my callsign'>" + myCall + "</div>"
      + "</div></div>";
 }
 
- function displayThisBandStats(bandName, RxTx){
+ function writeThisBandStats(bandName, RxTx){
    let g=document.getElementById("bandsContainer");
    let activeHomeCalls = new Set ();
    for (id in connections) {
      let c=connections[id];
-     if(c.b == bandName){
-       activeHomeCalls.add(c.sc); 
+     if(c.b == bandName && c.md == watchedMode){
        if ((c.sd=="home") && (RxTx=="Tx")) activeHomeCalls.add(c.sc); 
        if ((c.rd=="home") && (RxTx=="Rx")) activeHomeCalls.add(c.rc); 
 	 }
    }  
-
+   
    let nMe = 0;
    let nMax = 0;
    let winner = "";
@@ -474,29 +491,30 @@ function displayStatsRowLabels(RxTx, blockTitle){
 	 let otherEndCalls=new Set();
 	 for (id in connections) {
 	  let c=connections[id];
-      if (c.sc == call) {otherEndCallsAggregate.add(c.rc); otherEndCalls.add(c.rc);}
-      if (c.rc == call) {otherEndCallsAggregate.add(c.sc); otherEndCalls.add(c.sc);}
+	  if(c.b == bandName && c.md == watchedMode){
+        if ((c.sc == call) && (RxTx=="Tx")) {otherEndCallsAggregate.add(c.rc); otherEndCalls.add(c.rc);}
+        if ((c.rc == call) && (RxTx=="Rx")) {otherEndCallsAggregate.add(c.sc); otherEndCalls.add(c.sc);}
+	  }
 	 }
-	 let nOtherEnd = otherEndCalls.size.toFixed();
+	 let nOtherEnd = otherEndCalls.size;
 	 if (nOtherEnd > nMax) {
        winner = call;	  
  	   nMax = nOtherEnd;
 	 }
+	 
 	 if (call == myCall) nMe = nOtherEnd;
    });
    
-   let nActive = activeHomeCalls.size.toFixed();
-   let nOtherAggregate = otherEndCallsAggregate.size.toFixed();
+   let nActive = activeHomeCalls.size;
+   let nOtherAggregate = otherEndCallsAggregate.size;
    
-    g.innerHTML+="<div style='float:left'>"
-	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto;'>"
-     + "<div class='TopRow '"+RxTx+">"+bandName+"</div>"
-     + "<div>" + nActive.toString() + "</div>"
+    g.innerHTML+="<div style='float:left; padding-left:1px; padding-right:1px;'>"
+	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto; '>"
+     + "<div class='TopRow' >" + bandName + " (" + nActive.toString() + ")</div>"
      + "<div>" + nOtherAggregate.toString() + "</div>"
-     + "<div title = '" + winner + "'>" + nMax.toString() + " ("+ safePercentage(nMax, nOtherAggregate) + ")</div>"
-     + "<div title = '" + myCall + "'>" + nMe.toString() + " ("+ safePercentage(nMe, nOtherAggregate) + ")</div>"
+     + "<div title = '" + winner + "'>" + nMax.toString() +  "</div>"
+     + "<div title = '" + myCall + "'>" + nMe.toString() + "</div>"
      + "</div></div>";
-
 
 }
 
