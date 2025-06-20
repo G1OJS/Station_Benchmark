@@ -132,12 +132,13 @@
   var connectionsAdded=0;
   var connectionsPurged=0;
   var watchedMode="FT8";
+  var HTML="";
 
   loadConfig();
   refreshDisplays();
   setInterval(updateAppTop,1000);
   setInterval(refreshDisplays, refresh_mSeconds);
-  setInterval(purgeSpots, 15000);
+  setInterval(purgeSpots, 30000);
   connectToFeed();
   
  
@@ -149,11 +150,18 @@
   }
   
    function updateSquaresList(){
-      squaresList=document.getElementById('homeSquaresInput').value; // potentially mixed case but that's OK
-      saveConfig();
+      input = document.getElementById('homeSquaresInput');
+      squaresList=input.value; // potentially mixed case but that's OK
       squaresArr=parseSquares(squaresList); // returns uppercase squares, expanded if necessary
-      connectToFeed();
-      refreshDisplays();
+	  if (squaresArr=="Err") {
+	    input.setCustomValidity("Invalid grid square format");
+        input.reportValidity();
+	  } else {
+   	    input.setCustomValidity("");
+        saveConfig();
+        connectToFeed();
+        refreshDisplays();
+	  }
   }
   
   function updatePurgeMins(){
@@ -222,19 +230,23 @@
          });
 	  
     // add sender and receiver domain (home/dx)
-    if(squareIsInHome(conn.sl)){conn["sd"]="home"} else {conn["sd"]="dx"}
-    if(squareIsInHome(conn.rl)){conn["rd"]="home"} else {conn["rd"]="dx"}
+	let sh=(squareIsInHome(conn.sl));
+	let rh=(squareIsInHome(conn.rl));
+	if(sh || rh){										// only add connection if at least one end is in home
+      if(sh){conn["sd"]="home"} else {conn["sd"]="dx"}
+      if(rh){conn["rd"]="home"} else {conn["rd"]="dx"}
 
-    // add distance and bearing Home to DX 
-    // if both in home, sender to receiver
-    // compact logic == always sender to receiver unless Rx in home and Tx in DXin which case reverse
+      // add distance and bearing Home to DX 
+      // if both in home, sender to receiver
+      // compact logic == always sender to receiver unless Rx in home and Tx in DXin which case reverse
       conn["kmDeg"]= (conn.rd=="home" && conn.sd=="dx") ? squaresToKmDeg(conn.rl,conn.sl):squaresToKmDeg(conn.sl,conn.rl);
 
-    // now add this connection to the connections object using sequence ID as key:
-    if(conn.rd=="home" || conn.sd=="home") {
-      connections[conn.sq]=conn
-      connectionsAdded+=1;
-    }
+      // now add this connection to the connections object using sequence ID as key:
+      if(conn.rd=="home" || conn.sd=="home") {
+        connections[conn.sq]=conn
+        connectionsAdded+=1;
+      }
+	}
   }
   
    function purgeSpots(){
@@ -252,7 +264,11 @@
   function squareIsInHome(sqm){
     // return true if the level 4, 6, 8 or 10 square sq is in the home squares array
     let sq=sqm.toUpperCase();
-    return (squaresArr.includes(sq.substring(0,4)) || squaresArr.includes(sq.substring(0,6)) || squaresArr.includes(sq.substring(0,8)) || squaresArr.includes(sq.substring(0,10)));
+    if(squaresArr.includes(sq.substring(0,4))) return true;
+	if(squaresArr.includes(sq.substring(0,6))) return true;
+	if(squaresArr.includes(sq.substring(0,8))) return true;
+	if(squaresArr.includes(sq.substring(0,10))) return true;
+	return false;
   }
 
   function parseSquares(sqsList){
@@ -262,10 +278,12 @@
     console.log("Parsing squares list "+inputSqs);
     for(i=0;i<inputSqs.length;i++){
       let sq=inputSqs[i].trim();
+	  if (sq.length<4) return "Err";
       let cln=sq.search(":");
       if(cln<0){
         outputSqsArr.push(sq)
       } else {
+	    if(sq.length != 7 && sq.length != 9) return "Err";
         let root=sq.substring(0,cln-2);
         for(let x=sq.charCodeAt(cln-2);x<sq.charCodeAt(cln+1)+1;x++){
           for(let y=sq.charCodeAt(cln-1);y<sq.charCodeAt(cln+2)+1;y++){
@@ -378,12 +396,11 @@
 	  el.innerHTML += modeBtn;
 	  if(md == watchedMode) document.getElementById(md).classList.add('active');
 	});
-	writeAllBandsStats();
   }
  
   function setMode(mode){
     watchedMode = mode;
-	writeModeButtons();
+	refreshDisplays();
   }
  
   function updateAppTop(){
@@ -394,7 +411,6 @@
     document.getElementById("clock").innerHTML=utc_timestamp.split(" ")[1]+"&nbsp;"+utc_timestamp.split(" ")[2];
     document.getElementById("runningMins").value=runningmins;
     document.getElementById("connectionsIn").value=connectionsAdded-connectionsPurged;
-//	document.getElementById('nL2sq').value=" (" + (nL4sq/100).toFixed(2) + " TL sqs)";
   }
 
  function wavelength(band){
@@ -416,26 +432,25 @@ function writeAllBandsStats(){
    }
    let activeBandsArr = Array.from(activeBands).sort((a,b) =>  wavelength(b)-wavelength(a));
    
-   let g=document.getElementById("bandsContainer");
-   g.innerHTML="";
-   
-   g.innerHTML += "<h3>Transmitting</h3>";   
+   HTML="";
+   HTML += "<h3>Transmitting</h3>";   
    writeStatsRowLabels();
    activeBandsArr.forEach((band) => writeThisBandStats(band, "Tx"));
    
-   g.innerHTML +="<div style='clear:both'>";
-   g.innerHTML += "<h3>Receiving</h3>";   
+   HTML +="<div style='clear:both'>";
+   HTML += "<h3>Receiving</h3>";   
    writeStatsRowLabels();
    activeBandsArr.forEach((band) => writeThisBandStats(band, "Rx"));
 
-   document.querySelectorAll("div").forEach(div => {
-     if (div.innerText.trim() === "0" | div.innerText.trim() === "0%") {div.classList.add("zero");}
-   });
+//   document.querySelectorAll("div").forEach(div => {
+//     if (div.innerText.trim() === "0" | div.innerText.trim() === "0%") {div.classList.add("zero");}
+//   });
+   
+   document.getElementById("bandsContainer").innerHTML = HTML;
 }
 
 function writeStatsRowLabels(){
-    let g=document.getElementById("bandsContainer");
-    g.innerHTML +="<div style='float:left'>"
+    HTML +="<div style='float:left'>"
 	 + "<div class = 'anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto auto;'>"
      + "<div class = 'TopRow' title = 'Band (number of callsigns active in home squares on this band)'>Band (n. calls)</div>"
      + "<div title = 'Number of callsigns active in home squares'>Home calls</div>"
@@ -446,7 +461,6 @@ function writeStatsRowLabels(){
 }
 
  function writeThisBandStats(bandName, RxTx){
-   let g=document.getElementById("bandsContainer");
    let activeHomeCalls = new Set ();
    for (id in connections) {
      let c=connections[id];
@@ -460,8 +474,7 @@ function writeStatsRowLabels(){
    let nMax = 0;
    let winner = "";
    let otherEndCallsAggregate = new Set ();
-   activeHomeCalls.forEach((call) => 
-   {
+   activeHomeCalls.forEach((call) => {
 	 let otherEndCalls=new Set();
 	 for (id in connections) {
 	  let c=connections[id];
@@ -482,8 +495,8 @@ function writeStatsRowLabels(){
    let nActive = activeHomeCalls.size;
    let nOtherAggregate = otherEndCallsAggregate.size;
    
-    g.innerHTML+="<div style='float:left; padding-left:1px; padding-right:1px;'>"
-	 + "<div class='anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto auto; '>"
+   HTML+="<div style='float:left; padding-left:1px; padding-right:1px;'>"
+	 + "<div class='anyGrid' style='grid-template-columns:50px; grid-template-rows: auto auto auto auto; '>"
      + "<div class='TopRow' >" + bandName + "</div>"
      + "<div>" + nActive.toString() + "</div>"
      + "<div>" + nOtherAggregate.toString() + "</div>"
