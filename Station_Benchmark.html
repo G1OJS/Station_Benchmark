@@ -77,7 +77,7 @@
 		   </label>
 		   <label class='settings-row'>
 		      <span class="settings-label">Purge minutes</span>
-		      <input class = 'settings-input' id='purgeMinutes' type="number" min="1" max="60" onchange='updatePurgeMins()'
+		      <input class = 'settings-input' id='purgeMinutesInput' type="number" min="1" max="60" onchange='updatePurgeMins()'
 			         title='Number of minutes after which spots are deleted from database'>
 		   </label>
         </fieldset>
@@ -360,7 +360,7 @@
 	  
     if(localStorage.getItem('purgeMinutes')){
       purgeMinutes=localStorage.getItem('purgeMinutes');
-      document.getElementById("purgeMinutes").value=purgeMinutes;
+      document.getElementById("purgeMinutesInput").value=purgeMinutes;
       console.log("Loaded purge mins");
     } else {
       purgeMinutes=5;
@@ -420,12 +420,12 @@ function writeAllBandsStats(){
    g.innerHTML="";
    
    g.innerHTML += "<h3>Transmitting</h3>";   
-   writeStatsRowLabels("Tx","Transmitters");
+   writeStatsRowLabels();
    activeBandsArr.forEach((band) => writeThisBandStats(band, "Tx"));
    
    g.innerHTML +="<div style='clear:both'>";
    g.innerHTML += "<h3>Receiving</h3>";   
-   writeStatsRowLabels("Rx","Receivers");
+   writeStatsRowLabels();
    activeBandsArr.forEach((band) => writeThisBandStats(band, "Rx"));
 
    document.querySelectorAll("div").forEach(div => {
