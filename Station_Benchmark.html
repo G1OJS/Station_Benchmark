@@ -343,16 +343,22 @@ function writeStatsRowLabels() {
 
 function writeThisBandStats(band, RxTx) {
     const bandData = connectivity_Band_Mode_HomeCall[band];
-    if (!bandData)
-        return;
+    if (!bandData) return;
 
-    // good place to update activeModes
+    // Update activeModes early for all modes found on this band
     for (const md in bandData) {
-        activeModes.add(md)
+        activeModes.add(md);
     }
+
+    // Access the relevant direction of the watched mode
     const bandModeData = bandData[watchedMode]?.[RxTx];
-    if (!bandModeData)
-        return;
+
+    // Skip only if both directions are missing or empty
+    if (!bandModeData || Object.keys(bandModeData).length === 0) {
+        const otherDir = (RxTx === "Tx") ? "Rx" : "Tx";
+        const otherData = bandData[watchedMode]?.[otherDir];
+        if (!otherData || Object.keys(otherData).length === 0) return;
+    }
 
     let nMe = 0,
     nMax = 0,
