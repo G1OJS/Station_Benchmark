@@ -328,6 +328,13 @@ function writeAllBandsStats() {
     activeBands.forEach(band => writeThisBandStats(band, "Rx"));
 
     document.getElementById("bandsContainer").innerHTML = HTML;
+	
+	document.querySelectorAll("div").forEach(div => {
+    if (div.innerText.trim() === "0") {
+      div.classList.add("zero");
+    }
+});
+
 }
 
 function writeStatsRowLabels() {
@@ -406,38 +413,19 @@ function purgeSpots() {
         for (const mode in connectivity_Band_Mode_HomeCall[band]) {
             for (const dir of["Tx", "Rx"]) {
                 const calls = connectivity_Band_Mode_HomeCall[band][mode][dir];
-                if (!calls)
-                    continue; // prevent errors if this direction is missing
-
                 for (const homeCall in calls) {
                     for (const otherCall in calls[homeCall]) {
                         if (calls[homeCall][otherCall] < cutoff) {
                             delete calls[homeCall][otherCall];
                         }
                     }
-
                     // Clean up empty homeCall buckets
                     if (Object.keys(calls[homeCall]).length === 0) {
                         delete calls[homeCall];
                     }
                 }
-
-                // Clean up empty direction (Tx/Rx) objects
-                if (Object.keys(calls).length === 0) {
-                    delete connectivity_Band_Mode_HomeCall[band][mode][dir];
-                }
             }
 
-            // Clean up empty mode objects
-            const modeObj = connectivity_Band_Mode_HomeCall[band][mode];
-            if (Object.keys(modeObj).length === 0) {
-                delete connectivity_Band_Mode_HomeCall[band][mode];
-            }
-        }
-
-        // Clean up empty band objects
-        if (Object.keys(connectivity_Band_Mode_HomeCall[band]).length === 0) {
-            delete connectivity_Band_Mode_HomeCall[band];
         }
     }
 }
