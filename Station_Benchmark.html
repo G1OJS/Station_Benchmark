@@ -573,7 +573,7 @@ function loadConfig() {
         purgeMinutes = Number(storedPurge);
         console.log("Loaded purge minutes: " + purgeMinutes);
     } else {
-        purgeMinutes = 5;
+        purgeMinutes = 20;
         console.log("No valid purgeMinutes found: default applied.");
     }
     document.getElementById("purgeMinutesInput").value = purgeMinutes;
