@@ -457,41 +457,55 @@ function writeStatsRowLabels(){
      + "</div></div>";
 }
 
- function writeThisBandStats(bandName, RxTx){
-   let activeHomeCalls = new Set ();
-   for (id in connections) {
-     let c=connections[id];
-     if(c.b == bandName && c.md == watchedMode){
-       if ((c.sd=="home") && (RxTx=="Tx")) activeHomeCalls.add(c.sc); 
-       if ((c.rd=="home") && (RxTx=="Rx")) activeHomeCalls.add(c.rc); 
-	 }
-   }  
-   
-   let nMe = 0;
-   let nMax = 0;
-   let winner = "";
-   let otherEndCallsAggregate = new Set ();
-   activeHomeCalls.forEach((call) => {
-	 let otherEndCalls=new Set();
-	 for (id in connections) {
-	  let c=connections[id];
-	  if(c.b == bandName && c.md == watchedMode){
-        if ((c.sc == call) && (RxTx=="Tx")) {otherEndCallsAggregate.add(c.rc); otherEndCalls.add(c.rc);}
-        if ((c.rc == call) && (RxTx=="Rx")) {otherEndCallsAggregate.add(c.sc); otherEndCalls.add(c.sc);}
-	  }
-	 }
-	 let nOtherEnd = otherEndCalls.size;
-	 if (nOtherEnd > nMax) {
-       winner = call;	  
- 	   nMax = nOtherEnd;
-	 }
-	 
-	 if (call == myCall) nMe = nOtherEnd;
-   });
-   
-   let nActive = activeHomeCalls.size;
-   let nOtherAggregate = otherEndCallsAggregate.size;
-   
+ function writeThisBandStats(bandName, RxTx) {
+  const filteredConns = [];
+  const byCall = {};  // call → Set of otherEnd calls per call (will be a nested structure)
+
+  for (const id in connections) {
+    const c = connections[id];
+    if (c.b === bandName && c.md === watchedMode) {
+      filteredConns.push(c);
+
+      let homeCall = null, otherCall = null;
+
+      if (RxTx === "Tx" && c.sd === "home") {
+        homeCall = c.sc;
+        otherCall = c.rc;
+      } else if (RxTx === "Rx" && c.rd === "home") {
+        homeCall = c.rc;
+        otherCall = c.sc;
+      }
+
+      if (homeCall) {
+        if (!byCall[homeCall]) byCall[homeCall] = new Set();  // creates set of otherEnd calls *per home call*
+        byCall[homeCall].add(otherCall);
+      }
+    }
+  }
+
+  const activeHomeCalls = Object.keys(byCall);
+  const otherEndCallsAggregate = new Set();
+
+  let nMe = 0, nMax = 0, winner = "";
+
+  for (const call of activeHomeCalls) {
+    const otherSet = byCall[call];
+    const size = otherSet.size;
+    otherSet.forEach(c => otherEndCallsAggregate.add(c));
+
+    if (size > nMax) {
+      nMax = size;
+      winner = call;
+    }
+
+    if (call === myCall) {
+      nMe = size;
+    }
+  }
+
+  const nActive = activeHomeCalls.length;
+  const nOtherAggregate = otherEndCallsAggregate.size;
+
    HTML+="<div style='float:left; padding-left:1px; padding-right:1px;'>"
 	 + "<div class='anyGrid' style='grid-template-columns:50px; grid-template-rows: auto auto auto auto; '>"
      + "<div class='TopRow' >" + bandName + "</div>"
