@@ -128,9 +128,10 @@
   var nL4sq=0;
   var mqttClient=null;	
   var tStart=Date.now(); // software start time
-  var connections = {};
+  var connectivity_Band_Mode_HomeCall = {};
   var connectionsAdded=0;
   var connectionsPurged=0;
+  var activeModes=new Set();
   var watchedMode="FT8";
   var HTML="";
 
@@ -140,7 +141,6 @@
   setInterval(refreshDisplays, refresh_mSeconds);
   setInterval(purgeSpots, 30000);
   connectToFeed();
-  
  
   function updateMyCall(){
     myCall=document.getElementById('myCallInput').value;
@@ -173,10 +173,9 @@
   }  
   
   function purgeAllSpots(){
-     connections = {};
+     connectivity_Band_Mode_HomeCall = {};
      connectionsAdded=0;
      connectionsPurged=0;
-     leaderboardsList.clear();
   }
   
   function refreshDisplays(){
@@ -216,50 +215,181 @@
     } );
   }
 
-  // process MQTT messages - add to "connections" data structure
+  // process MQTT messages - add to "connectivity_Band_Mode_HomeCall" data structure
   function onMessage(msg){
     // message format:
     // sq:sequence number b:band f:frequency md:mode rp:report (snr) t:seconds since 1970-01-01
     // sc/rc:sender call/receiver call sl/rl:sender locator/receiver locator sa/ra:sender ADIF/receiver ADIF
-    // first, build conn object for this msg using same keys as PSKR MQTT:
-    const conn={};
+    // first, build c object for this msg using same keys as PSKR MQTT:
+    const c={};
     msg.slice(1, -1).replaceAll('"','').split(',')
          .forEach(function(v) {
            let kvp=v.split(":");
-           conn[kvp[0]]=kvp[1];
+           c[kvp[0]]=kvp[1];
          });
-	  
-    // add sender and receiver domain (home/dx)
-	let sh=(squareIsInHome(conn.sl));
-	let rh=(squareIsInHome(conn.rl));
-	if(sh || rh){										// only add connection if at least one end is in home
-      if(sh){conn["sd"]="home"} else {conn["sd"]="dx"}
-      if(rh){conn["rd"]="home"} else {conn["rd"]="dx"}
+	    
+    // find sender and receiver domain (home / not home)
+	let sh=(squareIsInHome(c.sl));
+	let rh=(squareIsInHome(c.rl));
 
-      // add distance and bearing Home to DX 
-      // if both in home, sender to receiver
-      // compact logic == always sender to receiver unless Rx in home and Tx in DXin which case reverse
-      // conn["kmDeg"]= (conn.rd=="home" && conn.sd=="dx") ? squaresToKmDeg(conn.rl,conn.sl):squaresToKmDeg(conn.sl,conn.rl);
+	if (!(sh || rh)) return; // Bail out ASAP if neither end is in home
 
-      // now add this connection to the connections object using sequence ID as key:
-      if(conn.rd=="home" || conn.sd=="home") {
-        connections[conn.sq]=conn
-        connectionsAdded+=1;
-      }
-	}
+    // start and maintain a structure associating 'far end' entities with each home call for both home transmit and home receive 
+	// the structure is connectivity_Band_Mode_HomeCall[band][Tx|Rx][homeCall][otherCall] = timestamp
+    // and we only keep the latest timestamp, which avoids duplicates	
+	const band = c.b;
+	const mode = c.md;
+    const t = parseInt(c.t);
+    if (!connectivity_Band_Mode_HomeCall[band]) connectivity_Band_Mode_HomeCall[band] = {}  // create band entry if it doesn't exist
+	if (!connectivity_Band_Mode_HomeCall[band][mode]) connectivity_Band_Mode_HomeCall[band][mode] = { Tx: {}, Rx: {} };  // create mode entry if it doesn't exist
+    if (sh) {
+      const h = c.sc, o = c.rc;
+      if (!connectivity_Band_Mode_HomeCall[band][mode].Tx[h]) connectivity_Band_Mode_HomeCall[band][mode].Tx[h] = {}; // create Tx record for this home call if needed
+      connectivity_Band_Mode_HomeCall[band][mode].Tx[h][o] = t;  // overwrite with most recent
+    }
+    if (rh) {
+      const h = c.rc, o = c.sc;
+      if (!connectivity_Band_Mode_HomeCall[band][mode].Rx[h]) connectivity_Band_Mode_HomeCall[band][mode].Rx[h] = {};  // create Rx record for this home call if needed
+      connectivity_Band_Mode_HomeCall[band][mode].Rx[h][o] = t;  // overwrite with most recent
+    }
+	
+	connectionsAdded+=1;
+
+	// old code but keep safe:
+	// add distance and bearing Home to DX 
+	// if both in home, sender to receiver
+	// compact logic == always sender to receiver unless Rx in home and Tx in DXin which case reverse
+	// conn["kmDeg"]= (conn.rd=="home" && conn.sd=="dx") ? squaresToKmDeg(conn.rl,conn.sl):squaresToKmDeg(conn.sl,conn.rl);
+
   }
   
-   function purgeSpots(){
-   // get rid of spots older than purgeMinutes  
-     for (id in connections) {
-       let tConn=parseInt(connections[id].t);
-       let connAge=((Date.now()/1000-tConn))/60
-       if(connAge > purgeMinutes) {
-         delete connections[id];
-         connectionsPurged+=1;
-       }
-     }
-   }
+  
+  function writeModeButtons(){
+	let el=document.getElementById("modeSelect");
+	el.innerHTML="<legend>Mode</legend>";
+	activeModes.forEach((md) => {
+	  let modeBtn = "<button type='button' class='button' name='modeSelectBtn' id='"+md+"' onclick='setMode(&quot;"+md+"&quot;)'> "+md+" </button> "
+	  el.innerHTML += modeBtn;
+	  if(md == watchedMode) document.getElementById(md).classList.add('active');
+	});
+  }
+ 
+  function setMode(mode){
+    watchedMode = mode;
+	refreshDisplays();
+  }
+ 
+
+
+ function wavelength(band){
+   let wl=parseInt(band.split("m")[0]);
+   if (band.search("cm")>0) {return wl/100} else {return wl}
+ }
+	
+	
+ function safePercentage(numerator, denominator) {
+  if (denominator == 0) return "0%";
+  return Math.round((numerator / denominator) * 100)+"%";
+ }
+ 
+
+function writeAllBandsStats() {
+  const activeBands = Object.keys(connectivity_Band_Mode_HomeCall)
+    .sort((a, b) => wavelength(b) - wavelength(a));
+	
+  HTML = "<h3>Transmitting</h3>";
+  writeStatsRowLabels();
+  activeBands.forEach(band => writeThisBandStats(band, "Tx"));
+
+  HTML += "<div style='clear:both'></div>";
+  HTML += "<h3>Receiving</h3>";
+  writeStatsRowLabels();
+  activeBands.forEach(band => writeThisBandStats(band, "Rx"));
+
+  document.getElementById("bandsContainer").innerHTML = HTML;
+}
+
+
+function writeStatsRowLabels(){
+    HTML +="<div style='float:left'>"
+	 + "<div class = 'anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto auto;'>"
+     + "<div class = 'TopRow' title = 'Band (number of callsigns active in home squares on this band)'>Band</div>"
+     + "<div title = 'Number of callsigns active in home squares'>Home calls</div>"
+     + "<div title = 'Number of spots generated by all callsigns in home, as a group'>Total spots</div>"
+     + "<div title = 'Number of spots generated by best performing callsign in home'>Leader</div>"
+     + "<div title = 'Number of spots generated by my callsign'>" + myCall + "</div>"
+     + "</div></div>";
+}
+
+ function writeThisBandStats(band, RxTx) {
+  const bandData = connectivity_Band_Mode_HomeCall[band];
+  if (!bandData) return;
+  
+  for (const md in bandData){
+    activeModes.add(md)
+  }
+  const bandModeData = bandData[watchedMode]?.[RxTx];
+  if (!bandModeData) return;
+
+  let nMe = 0, nMax = 0, winner = "";
+  let nActive = 0;
+  const otherEndCallsAggregate = new Set();
+
+  for (const homeCall in bandModeData) {
+    const peerMap = bandModeData[homeCall];
+    const otherSet = new Set();
+
+    for (const otherCall in peerMap) {
+      otherSet.add(otherCall);
+      otherEndCallsAggregate.add(otherCall);
+    }
+
+    const count = otherSet.size;
+    if (count > 0) nActive++;
+
+    if (count > nMax) {
+      nMax = count;
+      winner = homeCall;
+    }
+
+    if (homeCall === myCall) {
+      nMe = count;
+    }
+  }
+
+  HTML += "<div style='float:left; padding-left:1px; padding-right:1px;'>"
+       + "<div class='anyGrid' style='grid-template-columns:50px; grid-template-rows: auto auto auto auto;'>"
+       + "<div class='TopRow'>" + band + "</div>"
+       + "<div>" + nActive + "</div>"
+       + "<div>" + otherEndCallsAggregate.size + "</div>"
+       + "<div title='" + winner + "'>" + nMax + "</div>"
+       + "<div title='" + myCall + "'>" + nMe + "</div>"
+       + "</div></div>";
+}
+  
+  
+function purgeSpots(){
+  const cutoff = Math.floor(Date.now() / 1000) - 60*purgeMinutes;
+
+  for (const band in connectivity_Band_Mode_HomeCall) {
+   for (const mode in connectivity_Band_Mode_HomeCall[band]) {
+    for (const dir of ["Tx", "Rx"]) {
+      const calls = connectivity_Band_Mode_HomeCall[band][mode][dir];
+      for (const homeCall in calls) {
+        for (const otherCall in calls[homeCall]) {
+          if (calls[homeCall][otherCall] < cutoff) {
+            delete calls[homeCall][otherCall];
+          }
+        }
+        if (Object.keys(calls[homeCall]).length === 0) {
+          delete calls[homeCall];  // clean up empty call entries
+        }
+      }
+    }
+  }
+ }
+}
+
 
   function squareIsInHome(sqm){
     // return true if the level 4, 6, 8 or 10 square sq is in the home squares array
@@ -334,12 +464,14 @@
      return({"km":Math.round(km),"deg":Math.round(brg)});
   }
 	
-   function get_utc_timestamp(){ 
-    var t=new Date;
-    return t.getUTCDate()+"/"+(t.getUTCMonth()+1)+"/"+t.getUTCFullYear()+" "
-       +("0"+t.getUTCHours()).slice(-2)+":"
-       +("0"+t.getUTCMinutes()).slice(-2)+":"
-       +("0"+t.getUTCSeconds()).slice(-2)+" UTC";
+  function updateAppTop(){
+    const t = new Date;
+    const utc=("0"+t.getUTCHours()).slice(-2) + ":" + ("0"+t.getUTCMinutes()).slice(-2) + ":" + ("0"+t.getUTCSeconds()).slice(-2);
+    const runningmins=Math.trunc(((t-tStart)/1000) / 60);
+    // update the top banner  
+    document.getElementById("clock").innerHTML=utc + " UTC";
+    document.getElementById("runningMins").value=runningmins;
+    document.getElementById("connectionsIn").value=connectionsAdded-connectionsPurged;
   }
   
   function saveConfig(){
@@ -383,140 +515,6 @@
 
   }
      
-  function writeModeButtons(){
-    let activeModes=new Set();
-    for (id in connections) {activeModes.add(connections[id].md);}
-	let el=document.getElementById("modeSelect");
-	el.innerHTML="<legend>Mode</legend>";
-	activeModes.forEach((md) => {
-	  let modeBtn = "<button type='button' class='button' name='modeSelectBtn' id='"+md+"' onclick='setMode(&quot;"+md+"&quot;)'> "+md+" </button> "
-	  el.innerHTML += modeBtn;
-	  if(md == watchedMode) document.getElementById(md).classList.add('active');
-	});
-  }
- 
-  function setMode(mode){
-    watchedMode = mode;
-	refreshDisplays();
-  }
- 
-  function updateAppTop(){
-    var now = new Date;
-    var utc_timestamp=get_utc_timestamp(now);
-    var runningmins=Math.trunc(((now-tStart)/1000) / 60);
-    // update the top banner  
-    document.getElementById("clock").innerHTML=utc_timestamp.split(" ")[1]+"&nbsp;"+utc_timestamp.split(" ")[2];
-    document.getElementById("runningMins").value=runningmins;
-    document.getElementById("connectionsIn").value=connectionsAdded-connectionsPurged;
-  }
-
- function wavelength(band){
-   let wl=parseInt(band.split("m")[0]);
-   if (band.search("cm")>0) {return wl/100} else {return wl}
- }
-	
-	
- function safePercentage(numerator, denominator) {
-  if (denominator == 0) return "0%";
-  return Math.round((numerator / denominator) * 100)+"%";
- }
- 
-
-function writeAllBandsStats(){
-   let activeBands = new Set();
-   for (id in connections) {
-     if(connections[id].md == watchedMode) activeBands.add(connections[id].b);
-   }
-   let activeBandsArr = Array.from(activeBands).sort((a,b) =>  wavelength(b)-wavelength(a));
-   
-   HTML="";
-   HTML += "<h3>Transmitting</h3>";   
-   writeStatsRowLabels();
-   activeBandsArr.forEach((band) => writeThisBandStats(band, "Tx"));
-   
-   HTML +="<div style='clear:both'>";
-   HTML += "<h3>Receiving</h3>";   
-   writeStatsRowLabels();
-   activeBandsArr.forEach((band) => writeThisBandStats(band, "Rx"));
-
-//   document.querySelectorAll("div").forEach(div => {
-//     if (div.innerText.trim() === "0" | div.innerText.trim() === "0%") {div.classList.add("zero");}
-//   });
-   
-   document.getElementById("bandsContainer").innerHTML = HTML;
-}
-
-function writeStatsRowLabels(){
-    HTML +="<div style='float:left'>"
-	 + "<div class = 'anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto auto;'>"
-     + "<div class = 'TopRow' title = 'Band (number of callsigns active in home squares on this band)'>Band</div>"
-     + "<div title = 'Number of callsigns active in home squares'>Home calls</div>"
-     + "<div title = 'Number of spots generated by all callsigns in home, as a group'>Total spots</div>"
-     + "<div title = 'Number of spots generated by best performing callsign in home'>Leader</div>"
-     + "<div title = 'Number of spots generated by my callsign'>" + myCall + "</div>"
-     + "</div></div>";
-}
-
- function writeThisBandStats(bandName, RxTx) {
-  const filteredConns = [];
-  const byCall = {};  // call → Set of otherEnd calls per call (will be a nested structure)
-
-  for (const id in connections) {
-    const c = connections[id];
-    if (c.b === bandName && c.md === watchedMode) {
-      filteredConns.push(c);
-
-      let homeCall = null, otherCall = null;
-
-      if (RxTx === "Tx" && c.sd === "home") {
-        homeCall = c.sc;
-        otherCall = c.rc;
-      } else if (RxTx === "Rx" && c.rd === "home") {
-        homeCall = c.rc;
-        otherCall = c.sc;
-      }
-
-      if (homeCall) {
-        if (!byCall[homeCall]) byCall[homeCall] = new Set();  // creates set of otherEnd calls *per home call*
-        byCall[homeCall].add(otherCall);
-      }
-    }
-  }
-
-  const activeHomeCalls = Object.keys(byCall);
-  const otherEndCallsAggregate = new Set();
-
-  let nMe = 0, nMax = 0, winner = "";
-
-  for (const call of activeHomeCalls) {
-    const otherSet = byCall[call];
-    const size = otherSet.size;
-    otherSet.forEach(c => otherEndCallsAggregate.add(c));
-
-    if (size > nMax) {
-      nMax = size;
-      winner = call;
-    }
-
-    if (call === myCall) {
-      nMe = size;
-    }
-  }
-
-  const nActive = activeHomeCalls.length;
-  const nOtherAggregate = otherEndCallsAggregate.size;
-
-   HTML+="<div style='float:left; padding-left:1px; padding-right:1px;'>"
-	 + "<div class='anyGrid' style='grid-template-columns:50px; grid-template-rows: auto auto auto auto; '>"
-     + "<div class='TopRow' >" + bandName + "</div>"
-     + "<div>" + nActive.toString() + "</div>"
-     + "<div>" + nOtherAggregate.toString() + "</div>"
-     + "<div title = '" + winner + "'>" + nMax.toString() +  "</div>"
-     + "<div title = '" + myCall + "'>" + nMe.toString() + "</div>"
-     + "</div></div>";
-
-}
-
 </script>
 
 </body>
