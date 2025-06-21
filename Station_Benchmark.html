@@ -360,30 +360,27 @@
     } else {
       squaresList=defaultSquaresList;
       console.log("No local config data found for squares list: defaults applied.");
-      saveConfig();
     }
-    let homeSquaresInput=squaresList.replaceAll(',',', '); // add spaces to give an opportunity for linebreaks
-    document.getElementById("homeSquaresInput").value=homeSquaresInput; 
+    document.getElementById("homeSquaresInput").value=squaresList; 
     squaresArr=parseSquares(squaresList); // returns uppercase squares, expanded if necessary
     
     if(localStorage.getItem('myCall')){
       myCall=JSON.parse(localStorage.getItem('myCall'));
       console.log("Loaded myCall " + myCall);
-      document.getElementById("myCallInput").value=myCall;
     } else {
       console.log("No local config data found for my callsign: defaults applied.");
       myCall="G1OJS";
-      saveConfig();
     }
+	document.getElementById("myCallInput").value=myCall;
 	  
     if(localStorage.getItem('purgeMinutes')){
       purgeMinutes=localStorage.getItem('purgeMinutes');
-      document.getElementById("purgeMinutesInput").value=purgeMinutes;
       console.log("Loaded purge mins");
     } else {
       purgeMinutes=5;
-      saveConfig();
     }
+	document.getElementById("purgeMinutesInput").value=purgeMinutes;
+
   }
      
   function writeModeButtons(){
