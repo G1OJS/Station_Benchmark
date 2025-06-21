@@ -29,7 +29,6 @@
 	.settings-label {font-weight: 600;color: #333;}
 	.settings-input {width: 100%;}
     .settings-input:invalid {border-color: #e66;background-color: #fee;}
-	output {background-color:var(--light-paper-color);}
 	.button {font-size:0.7rem; color:#404040; padding: 0.2em 0.3em; border-radius: 0.5em; background-color: silver; border: 4px solid grey; cursor: pointer;}
 	.button.active {border: 2px solid black; color:blue; font-weight:bold;}
 	.button-tiny {font-size:0.6rem; padding: 0.1em 0.1em; border-radius: 0.2em; background-color: silver; border: 1px solid grey; cursor: pointer;  vertical-align:middle;}
@@ -119,200 +118,221 @@
 <!-- BandOpticon script -->
 <script>
 
- // initialisation and functions to load and save configuration
-  const defaultSquaresList="IO50:99,JO01,JO02,JO03"; // used if squaresList value can't be set from localstorage
-  let squaresArr=[]; // contains the full list of every square (level 4, 6, 8, 10) that we want to watch, generated from squaresList
-  var squaresList=""; // the human-firendly list of squares to watch
-  var refresh_mSeconds=5000;
-  var purgeMinutes=5;
-  var nL4sq=0;
-  var mqttClient=null;	
-  var tStart=Date.now(); // software start time
-  var connectivity_Band_Mode_HomeCall = {};
-  var connectionsAdded=0;
-  var connectionsPurged=0;
-  var activeModes=new Set();
-  var watchedMode="FT8";
-  var HTML="";
+// initialisation and functions to load and save configuration
+const defaultSquaresList = "IO50:99,JO01,JO02,JO03"; // used if squaresList value can't be set from localstorage
+let squaresArr = []; // contains the full list of every square (level 4, 6, 8, 10) that we want to watch, generated from squaresList
+var squaresList = ""; // the human-firendly list of squares to watch
+var refresh_mSeconds = 5000;
+var purgeMinutes = 5;
+var nL4sq = 0;
+var mqttClient = null;
+var tStart = Date.now(); // software start time
+var connectivity_Band_Mode_HomeCall = {};
+var connectionsAdded = 0;
+var connectionsPurged = 0;
+var activeModes = new Set();
+var watchedMode = "FT8";
+var HTML = "";
 
-  loadConfig();
-  refreshDisplays();
-  setInterval(updateAppTop,1000);
-  setInterval(refreshDisplays, refresh_mSeconds);
-  setInterval(purgeSpots, 30000);
-  connectToFeed();
- 
-  function updateMyCall(){
-    myCall=document.getElementById('myCallInput').value;
-	console.log("my Call updated to " + myCall);
-	saveConfig();
-	refreshDisplays();
-  }
-  
-   function updateSquaresList(){
-      input = document.getElementById('homeSquaresInput');
-      squaresList=input.value; // potentially mixed case but that's OK
-      squaresArr=parseSquares(squaresList); // returns uppercase squares, expanded if necessary
-	  if (squaresArr=="Err") {
-	    input.setCustomValidity("Invalid grid square format");
+loadConfig();
+refreshDisplays();
+setInterval(updateAppTop, 1000);
+setInterval(refreshDisplays, refresh_mSeconds);
+setInterval(purgeSpots, 30000);
+connectToFeed();
+
+function updateMyCall() {
+    myCall = document.getElementById('myCallInput').value;
+    console.log("my Call updated to " + myCall);
+    saveConfig();
+    refreshDisplays();
+}
+
+function updateSquaresList() {
+    input = document.getElementById('homeSquaresInput');
+    squaresList = input.value; // potentially mixed case but that's OK
+    squaresArr = parseSquares(squaresList); // returns uppercase squares, expanded if necessary
+    if (squaresArr == "Err") {
+        input.setCustomValidity("Invalid grid square format");
         input.reportValidity();
-	  } else {
-   	    input.setCustomValidity("");
+    } else {
+        input.setCustomValidity("");
         saveConfig();
         connectToFeed();
         refreshDisplays();
-	  }
-  }
-  
-  function updatePurgeMins(){
-    purgeMinutes=document.getElementById('purgeMinutesInput').value;
-	console.log("Purge mins updated to " + purgeMinutes);
-	saveConfig();
-	purgeSpots();
-	refreshDisplays();
-  }  
-  
-  function purgeAllSpots(){
-     connectivity_Band_Mode_HomeCall = {};
-     connectionsAdded=0;
-     connectionsPurged=0;
-  }
-  
-  function refreshDisplays(){
-   writeAllBandsStats();
-   writeModeButtons();
-  } 
-  
-  // connect to MQTT feed  
-   function connectToFeed(){
-  //pskr/filter/v2/{band}/{mode}/{sendercall}/{receivercall}/{senderlocator}/{receiverlocator}/{sendercountry}/{receivercountry}
-    mqttClient=mqtt.connect("wss://mqtt.pskreporter.info:1886");
-    mqttClient.onSuccess=subscribe();
-    mqttClient.on("message", (filter,message) => {onMessage(message.toString());}  );
-  }
+    }
+}
 
-  // subscribe to needed squares
-  function subscribe(){
+function updatePurgeMins() {
+    purgeMinutes = document.getElementById('purgeMinutesInput').value;
+    console.log("Purge mins updated to " + purgeMinutes);
+    saveConfig();
+    purgeSpots();
+    refreshDisplays();
+}
+
+function purgeAllSpots() {
+    connectivity_Band_Mode_HomeCall = {};
+    connectionsAdded = 0;
+    connectionsPurged = 0;
+}
+
+function refreshDisplays() {
+    writeAllBandsStats();
+    writeModeButtons();
+}
+
+// connect to MQTT feed
+function connectToFeed() {
+    //pskr/filter/v2/{band}/{mode}/{sendercall}/{receivercall}/{senderlocator}/{receiverlocator}/{sendercountry}/{receivercountry}
+    mqttClient = mqtt.connect("wss://mqtt.pskreporter.info:1886");
+    mqttClient.onSuccess = subscribe();
+    mqttClient.on("message", (filter, message) => {
+        onMessage(message.toString());
+    });
+}
+
+// subscribe to needed squares
+function subscribe() {
     //pskr/filter/v2/{band}/{mode}/{sendercall}/{receivercall}/
     //{senderlocator}/{receiverlocator}/{sendercountry}/{receivercountry}
-    
+
     // find the level 4 squares we need to subscribe to in order to get messages for our squares in squaresArr
-    let subs=new Set;
-    for(let i=0;i<squaresArr.length;i++){subs.add(squaresArr[i].substring(0,4));}
-    let subsArr=Array.from(subs);
-    nL4sq=subsArr.length;
-    
+    let subs = new Set;
+    for (let i = 0; i < squaresArr.length; i++) {
+        subs.add(squaresArr[i].substring(0, 4));
+    }
+    let subsArr = Array.from(subs);
+    nL4sq = subsArr.length;
+
     // now subscribe to the level 4 squares
     subsArr.forEach((sq) => {
-      var topic='pskr/filter/v2/+/+/+/+/'+sq+'/+/+/#';
-      console.log("Subscribe to "+topic);
-      mqttClient.subscribe(topic, (error) => {if (error) {
-              console.error('subscription failed to '+topic, error)}});
-      var topic='pskr/filter/v2/+/+/+/+/+/'+sq+'/+/#';
-      console.log("Subscribe to "+topic);
-      mqttClient.subscribe(topic, (error) => {if (error) {
-              console.error('subscription failed to '+topic, error)}});
-    } );
-  }
+        var topic = 'pskr/filter/v2/+/+/+/+/' + sq + '/+/+/#';
+        console.log("Subscribe to " + topic);
+        mqttClient.subscribe(topic, (error) => {
+            if (error) {
+                console.error('subscription failed to ' + topic, error)
+            }
+        });
+        var topic = 'pskr/filter/v2/+/+/+/+/+/' + sq + '/+/#';
+        console.log("Subscribe to " + topic);
+        mqttClient.subscribe(topic, (error) => {
+            if (error) {
+                console.error('subscription failed to ' + topic, error)
+            }
+        });
+    });
+}
 
-  // process MQTT messages - add to "connectivity_Band_Mode_HomeCall" data structure
-  function onMessage(msg){
+// process MQTT messages - add to "connectivity_Band_Mode_HomeCall" data structure
+function onMessage(msg) {
     // message format:
     // sq:sequence number b:band f:frequency md:mode rp:report (snr) t:seconds since 1970-01-01
     // sc/rc:sender call/receiver call sl/rl:sender locator/receiver locator sa/ra:sender ADIF/receiver ADIF
     // first, build c object for this msg using same keys as PSKR MQTT:
-    const c={};
-    msg.slice(1, -1).replaceAll('"','').split(',')
-         .forEach(function(v) {
-           let kvp=v.split(":");
-           c[kvp[0]]=kvp[1];
-         });
-	    
+    const c = {};
+    msg.slice(1, -1).replaceAll('"', '').split(',')
+    .forEach(function (v) {
+        let kvp = v.split(":");
+        c[kvp[0]] = kvp[1];
+    });
+
     // find sender and receiver domain (home / not home)
-	let sh=(squareIsInHome(c.sl));
-	let rh=(squareIsInHome(c.rl));
+    let sh = (squareIsInHome(c.sl));
+    let rh = (squareIsInHome(c.rl));
 
-	if (!(sh || rh)) return; // Bail out ASAP if neither end is in home
+    if (!(sh || rh))
+        return; // Bail out ASAP if neither end is in home
 
-    // start and maintain a structure associating 'far end' entities with each home call for both home transmit and home receive 
-	// the structure is connectivity_Band_Mode_HomeCall[band][Tx|Rx][homeCall][otherCall] = timestamp
-    // and we only keep the latest timestamp, which avoids duplicates	
-	const band = c.b;
-	const mode = c.md;
+    // start and maintain a structure associating 'far end' entities with each home call for both home transmit and home receive
+    // the structure is connectivity_Band_Mode_HomeCall[band][Tx|Rx][homeCall][otherCall] = timestamp
+    // and we only keep the latest timestamp, which avoids duplicates
+    const band = c.b;
+    const mode = c.md;
     const t = parseInt(c.t);
-    if (!connectivity_Band_Mode_HomeCall[band]) connectivity_Band_Mode_HomeCall[band] = {}  // create band entry if it doesn't exist
-	if (!connectivity_Band_Mode_HomeCall[band][mode]) connectivity_Band_Mode_HomeCall[band][mode] = { Tx: {}, Rx: {} };  // create mode entry if it doesn't exist
+    if (!connectivity_Band_Mode_HomeCall[band])
+        connectivity_Band_Mode_HomeCall[band] = {}
+    // create band entry if it doesn't exist
+    if (!connectivity_Band_Mode_HomeCall[band][mode])
+        connectivity_Band_Mode_HomeCall[band][mode] = {
+            Tx: {},
+            Rx: {}
+        }; // create mode entry if it doesn't exist
     if (sh) {
-      const h = c.sc, o = c.rc;
-      if (!connectivity_Band_Mode_HomeCall[band][mode].Tx[h]) connectivity_Band_Mode_HomeCall[band][mode].Tx[h] = {}; // create Tx record for this home call if needed
-      connectivity_Band_Mode_HomeCall[band][mode].Tx[h][o] = t;  // overwrite with most recent
+        const h = c.sc,
+        o = c.rc;
+        if (!connectivity_Band_Mode_HomeCall[band][mode].Tx[h])
+            connectivity_Band_Mode_HomeCall[band][mode].Tx[h] = {}; // create Tx record for this home call if needed
+        connectivity_Band_Mode_HomeCall[band][mode].Tx[h][o] = t; // overwrite with most recent
     }
     if (rh) {
-      const h = c.rc, o = c.sc;
-      if (!connectivity_Band_Mode_HomeCall[band][mode].Rx[h]) connectivity_Band_Mode_HomeCall[band][mode].Rx[h] = {};  // create Rx record for this home call if needed
-      connectivity_Band_Mode_HomeCall[band][mode].Rx[h][o] = t;  // overwrite with most recent
+        const h = c.rc,
+        o = c.sc;
+        if (!connectivity_Band_Mode_HomeCall[band][mode].Rx[h])
+            connectivity_Band_Mode_HomeCall[band][mode].Rx[h] = {}; // create Rx record for this home call if needed
+        connectivity_Band_Mode_HomeCall[band][mode].Rx[h][o] = t; // overwrite with most recent
     }
-	
-	connectionsAdded+=1;
 
-	// old code but keep safe:
-	// add distance and bearing Home to DX 
-	// if both in home, sender to receiver
-	// compact logic == always sender to receiver unless Rx in home and Tx in DXin which case reverse
-	// conn["kmDeg"]= (conn.rd=="home" && conn.sd=="dx") ? squaresToKmDeg(conn.rl,conn.sl):squaresToKmDeg(conn.sl,conn.rl);
+    connectionsAdded += 1;
 
-  }
-  
-  
-  function writeModeButtons(){
-	let el=document.getElementById("modeSelect");
-	el.innerHTML="<legend>Mode</legend>";
-	activeModes.forEach((md) => {
-	  let modeBtn = "<button type='button' class='button' name='modeSelectBtn' id='"+md+"' onclick='setMode(&quot;"+md+"&quot;)'> "+md+" </button> "
-	  el.innerHTML += modeBtn;
-	  if(md == watchedMode) document.getElementById(md).classList.add('active');
-	});
-  }
- 
-  function setMode(mode){
-    watchedMode = mode;
-	refreshDisplays();
-  }
- 
+    // old code but keep safe:
+    // add distance and bearing Home to DX
+    // if both in home, sender to receiver
+    // compact logic == always sender to receiver unless Rx in home and Tx in DXin which case reverse
+    // conn["kmDeg"]= (conn.rd=="home" && conn.sd=="dx") ? squaresToKmDeg(conn.rl,conn.sl):squaresToKmDeg(conn.sl,conn.rl);
 
-
- function wavelength(band){
-   let wl=parseInt(band.split("m")[0]);
-   if (band.search("cm")>0) {return wl/100} else {return wl}
- }
-	
-	
- function safePercentage(numerator, denominator) {
-  if (denominator == 0) return "0%";
-  return Math.round((numerator / denominator) * 100)+"%";
- }
- 
-
-function writeAllBandsStats() {
-  const activeBands = Object.keys(connectivity_Band_Mode_HomeCall)
-    .sort((a, b) => wavelength(b) - wavelength(a));
-	
-  HTML = "<h3>Transmitting</h3>";
-  writeStatsRowLabels();
-  activeBands.forEach(band => writeThisBandStats(band, "Tx"));
-
-  HTML += "<div style='clear:both'></div>";
-  HTML += "<h3>Receiving</h3>";
-  writeStatsRowLabels();
-  activeBands.forEach(band => writeThisBandStats(band, "Rx"));
-
-  document.getElementById("bandsContainer").innerHTML = HTML;
 }
 
+function writeModeButtons() {
+    let el = document.getElementById("modeSelect");
+    el.innerHTML = "<legend>Mode</legend>";
+    activeModes.forEach((md) => {
+        let modeBtn = "<button type='button' class='button' name='modeSelectBtn' id='" + md + "' onclick='setMode(&quot;" + md + "&quot;)'> " + md + " </button> "
+            el.innerHTML += modeBtn;
+        if (md == watchedMode)
+            document.getElementById(md).classList.add('active');
+    });
+}
 
-function writeStatsRowLabels(){
-    HTML +="<div style='float:left'>"
-	 + "<div class = 'anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto auto;'>"
+function setMode(mode) {
+    watchedMode = mode;
+    refreshDisplays();
+}
+
+function wavelength(band) {
+    let wl = parseInt(band.split("m")[0]);
+    if (band.search("cm") > 0) {
+        return wl / 100
+    } else {
+        return wl
+    }
+}
+
+function safePercentage(numerator, denominator) {
+    if (denominator == 0)
+        return "0%";
+    return Math.round((numerator / denominator) * 100) + "%";
+}
+
+function writeAllBandsStats() {
+    const activeBands = Object.keys(connectivity_Band_Mode_HomeCall)
+        .sort((a, b) => wavelength(b) - wavelength(a));
+
+    HTML = "<h3>Transmitting</h3>";
+    writeStatsRowLabels();
+    activeBands.forEach(band => writeThisBandStats(band, "Tx"));
+
+    HTML += "<div style='clear:both'></div>";
+    HTML += "<h3>Receiving</h3>";
+    writeStatsRowLabels();
+    activeBands.forEach(band => writeThisBandStats(band, "Rx"));
+
+    document.getElementById("bandsContainer").innerHTML = HTML;
+}
+
+function writeStatsRowLabels() {
+    HTML += "<div style='float:left'>"
+     + "<div class = 'anyGrid' style='grid-template-columns:max-content; grid-template-rows: auto auto auto auto;'>"
      + "<div class = 'TopRow' title = 'Band (number of callsigns active in home squares on this band)'>Band</div>"
      + "<div title = 'Number of callsigns active in home squares'>Home calls</div>"
      + "<div title = 'Number of spots generated by all callsigns in home, as a group'>Total spots</div>"
@@ -321,200 +341,236 @@ function writeStatsRowLabels(){
      + "</div></div>";
 }
 
- function writeThisBandStats(band, RxTx) {
-  const bandData = connectivity_Band_Mode_HomeCall[band];
-  if (!bandData) return;
-  
-  for (const md in bandData){
-    activeModes.add(md)
-  }
-  const bandModeData = bandData[watchedMode]?.[RxTx];
-  if (!bandModeData) return;
+function writeThisBandStats(band, RxTx) {
+    const bandData = connectivity_Band_Mode_HomeCall[band];
+    if (!bandData)
+        return;
 
-  let nMe = 0, nMax = 0, winner = "";
-  let nActive = 0;
-  const otherEndCallsAggregate = new Set();
-
-  for (const homeCall in bandModeData) {
-    const peerMap = bandModeData[homeCall];
-    const otherSet = new Set();
-
-    for (const otherCall in peerMap) {
-      otherSet.add(otherCall);
-      otherEndCallsAggregate.add(otherCall);
+    // good place to update activeModes
+    for (const md in bandData) {
+        activeModes.add(md)
     }
+    const bandModeData = bandData[watchedMode]?.[RxTx];
+    if (!bandModeData)
+        return;
 
-    const count = otherSet.size;
-    if (count > 0) nActive++;
+    let nMe = 0,
+    nMax = 0,
+    winner = "";
+    let nActive = 0;
+    const otherEndCallsAggregate = new Set();
 
-    if (count > nMax) {
-      nMax = count;
-      winner = homeCall;
-    }
+    for (const homeCall in bandModeData) {
+        const peerMap = bandModeData[homeCall];
+        const otherSet = new Set();
 
-    if (homeCall === myCall) {
-      nMe = count;
-    }
-  }
-
-  HTML += "<div style='float:left; padding-left:1px; padding-right:1px;'>"
-       + "<div class='anyGrid' style='grid-template-columns:50px; grid-template-rows: auto auto auto auto;'>"
-       + "<div class='TopRow'>" + band + "</div>"
-       + "<div>" + nActive + "</div>"
-       + "<div>" + otherEndCallsAggregate.size + "</div>"
-       + "<div title='" + winner + "'>" + nMax + "</div>"
-       + "<div title='" + myCall + "'>" + nMe + "</div>"
-       + "</div></div>";
-}
-  
-  
-function purgeSpots(){
-  const cutoff = Math.floor(Date.now() / 1000) - 60*purgeMinutes;
-
-  for (const band in connectivity_Band_Mode_HomeCall) {
-   for (const mode in connectivity_Band_Mode_HomeCall[band]) {
-    for (const dir of ["Tx", "Rx"]) {
-      const calls = connectivity_Band_Mode_HomeCall[band][mode][dir];
-      for (const homeCall in calls) {
-        for (const otherCall in calls[homeCall]) {
-          if (calls[homeCall][otherCall] < cutoff) {
-            delete calls[homeCall][otherCall];
-          }
+        for (const otherCall in peerMap) {
+            otherSet.add(otherCall);
+            otherEndCallsAggregate.add(otherCall);
         }
-        if (Object.keys(calls[homeCall]).length === 0) {
-          delete calls[homeCall];  // clean up empty call entries
+
+        const count = otherSet.size;
+        if (count > 0)
+            nActive++;
+
+        if (count > nMax) {
+            nMax = count;
+            winner = homeCall;
         }
-      }
+
+        if (homeCall === myCall) {
+            nMe = count;
+        }
     }
-  }
- }
+
+    HTML += "<div style='float:left; padding-left:1px; padding-right:1px;'>"
+     + "<div class='anyGrid' style='grid-template-columns:50px; grid-template-rows: auto auto auto auto;'>"
+     + "<div class='TopRow'>" + band + "</div>"
+     + "<div>" + nActive + "</div>"
+     + "<div>" + otherEndCallsAggregate.size + "</div>"
+     + "<div title='" + winner + "'>" + nMax + "</div>"
+     + "<div title='" + myCall + "'>" + nMe + "</div>"
+     + "</div></div>";
 }
 
+function purgeSpots() {
+    const cutoff = Math.floor(Date.now() / 1000) - 60 * purgeMinutes;
 
-  function squareIsInHome(sqm){
+    for (const band in connectivity_Band_Mode_HomeCall) {
+        for (const mode in connectivity_Band_Mode_HomeCall[band]) {
+            for (const dir of["Tx", "Rx"]) {
+                const calls = connectivity_Band_Mode_HomeCall[band][mode][dir];
+                if (!calls)
+                    continue; // prevent errors if this direction is missing
+
+                for (const homeCall in calls) {
+                    for (const otherCall in calls[homeCall]) {
+                        if (calls[homeCall][otherCall] < cutoff) {
+                            delete calls[homeCall][otherCall];
+                        }
+                    }
+
+                    // Clean up empty homeCall buckets
+                    if (Object.keys(calls[homeCall]).length === 0) {
+                        delete calls[homeCall];
+                    }
+                }
+
+                // Clean up empty direction (Tx/Rx) objects
+                if (Object.keys(calls).length === 0) {
+                    delete connectivity_Band_Mode_HomeCall[band][mode][dir];
+                }
+            }
+
+            // Clean up empty mode objects
+            const modeObj = connectivity_Band_Mode_HomeCall[band][mode];
+            if (Object.keys(modeObj).length === 0) {
+                delete connectivity_Band_Mode_HomeCall[band][mode];
+            }
+        }
+
+        // Clean up empty band objects
+        if (Object.keys(connectivity_Band_Mode_HomeCall[band]).length === 0) {
+            delete connectivity_Band_Mode_HomeCall[band];
+        }
+    }
+}
+
+function squareIsInHome(sqm) {
     // return true if the level 4, 6, 8 or 10 square sq is in the home squares array
-    let sq=sqm.toUpperCase();
-    if(squaresArr.includes(sq.substring(0,4))) return true;
-	if(squaresArr.includes(sq.substring(0,6))) return true;
-	if(squaresArr.includes(sq.substring(0,8))) return true;
-	if(squaresArr.includes(sq.substring(0,10))) return true;
-	return false;
-  }
+    let sq = sqm.toUpperCase();
+    if (squaresArr.includes(sq.substring(0, 4)))
+        return true;
+    if (squaresArr.includes(sq.substring(0, 6)))
+        return true;
+    if (squaresArr.includes(sq.substring(0, 8)))
+        return true;
+    if (squaresArr.includes(sq.substring(0, 10)))
+        return true;
+    return false;
+}
 
-  function parseSquares(sqsList){
+function parseSquares(sqsList) {
     // returns uppercase squares, expanded if necessary
-    var outputSqsArr=new Array();
-    var inputSqs=sqsList.toUpperCase().split(','); // internally we work with uppercase squares
-    console.log("Parsing squares list "+inputSqs);
-    for(i=0;i<inputSqs.length;i++){
-      let sq=inputSqs[i].trim();
-	  if (sq.length<4) return "Err";
-      let cln=sq.search(":");
-      if(cln<0){
-        outputSqsArr.push(sq)
-      } else {
-	    if(sq.length != 7 && sq.length != 9) return "Err";
-        let root=sq.substring(0,cln-2);
-        for(let x=sq.charCodeAt(cln-2);x<sq.charCodeAt(cln+1)+1;x++){
-          for(let y=sq.charCodeAt(cln-1);y<sq.charCodeAt(cln+2)+1;y++){
-            outputSqsArr.push(root+String.fromCharCode(x)+String.fromCharCode(y))
-          }
+    var outputSqsArr = new Array();
+    var inputSqs = sqsList.toUpperCase().split(','); // internally we work with uppercase squares
+    console.log("Parsing squares list " + inputSqs);
+    for (i = 0; i < inputSqs.length; i++) {
+        let sq = inputSqs[i].trim();
+        if (sq.length < 4)
+            return "Err";
+        let cln = sq.search(":");
+        if (cln < 0) {
+            outputSqsArr.push(sq)
+        } else {
+            if (sq.length != 7 && sq.length != 9)
+                return "Err";
+            let root = sq.substring(0, cln - 2);
+            for (let x = sq.charCodeAt(cln - 2); x < sq.charCodeAt(cln + 1) + 1; x++) {
+                for (let y = sq.charCodeAt(cln - 1); y < sq.charCodeAt(cln + 2) + 1; y++) {
+                    outputSqsArr.push(root + String.fromCharCode(x) + String.fromCharCode(y))
+                }
+            }
         }
-      }   
     }
-    console.log("Parsed squares result "+outputSqsArr);
+    console.log("Parsed squares result " + outputSqsArr);
     return outputSqsArr;
-  }
+}
 
-   function mhToLatLong(Sq_mixedCase,inRadians=false){
-    let Sq=Sq_mixedCase.toUpperCase();
-    let lat=10*(Sq.charCodeAt(1)-65);
-    let lon=20*(Sq.charCodeAt(0)-65);
-    if(Sq.length>2) {
-      lat+=parseInt(Sq.charAt(3));
-      lon+=2*parseInt(Sq.charAt(2));
+function mhToLatLong(Sq_mixedCase, inRadians = false) {
+    let Sq = Sq_mixedCase.toUpperCase();
+    let lat = 10 * (Sq.charCodeAt(1) - 65);
+    let lon = 20 * (Sq.charCodeAt(0) - 65);
+    if (Sq.length > 2) {
+        lat += parseInt(Sq.charAt(3));
+        lon += 2 * parseInt(Sq.charAt(2));
     }
-    if(Sq.length>4){
-      lat+=(Sq.charCodeAt(5)-65)/24;
-      lon+=(Sq.charCodeAt(4)-65)/12;
+    if (Sq.length > 4) {
+        lat += (Sq.charCodeAt(5) - 65) / 24;
+        lon += (Sq.charCodeAt(4) - 65) / 12;
     }
-    lat+=1/48.0 - 90;
-    lon+=1/24.0 - 180;
-    if(inRadians){
-	    lat=lat*Math.PI/180;    
-	    lon=lon*Math.PI/180;    
+    lat += 1 / 48.0 - 90;
+    lon += 1 / 24.0 - 180;
+    if (inRadians) {
+        lat = lat * Math.PI / 180;
+        lon = lon * Math.PI / 180;
     }
-    return {"lat":lat,"lon":lon}
-  }
+    return {
+        "lat": lat,
+        "lon": lon
+    }
+}
 
-  function squaresToKmDeg(SqA,SqB){
-	  
-     let A=mhToLatLong(SqA,true);
-     let B=mhToLatLong(SqB,true);
-     let dLat=B.lat-A.lat;
-     let dLon=B.lon-A.lon;
-     let a=Math.pow(Math.sin(dLat/2),2)+Math.cos(A.lat)*Math.cos(B.lat)*Math.pow(Math.sin(dLon/2),2);
-     let c=2.0*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-     let km=6371.0*c;
-     let y=Math.sin(dLon)*Math.cos(B.lat);
-     let x=Math.cos(A.lat)*Math.sin(B.lat) - Math.sin(A.lat)*Math.cos(B.lat)*Math.cos(dLon);
-     let th=Math.atan2(y,x);
-     let brg=(th*180/Math.PI + 360) %360;
+function squaresToKmDeg(SqA, SqB) {
 
-     return({"km":Math.round(km),"deg":Math.round(brg)});
-  }
-	
-  function updateAppTop(){
+    let A = mhToLatLong(SqA, true);
+    let B = mhToLatLong(SqB, true);
+    let dLat = B.lat - A.lat;
+    let dLon = B.lon - A.lon;
+    let a = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(A.lat) * Math.cos(B.lat) * Math.pow(Math.sin(dLon / 2), 2);
+    let c = 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    let km = 6371.0 * c;
+    let y = Math.sin(dLon) * Math.cos(B.lat);
+    let x = Math.cos(A.lat) * Math.sin(B.lat) - Math.sin(A.lat) * Math.cos(B.lat) * Math.cos(dLon);
+    let th = Math.atan2(y, x);
+    let brg = (th * 180 / Math.PI + 360) % 360;
+
+    return ({
+        "km": Math.round(km),
+        "deg": Math.round(brg)
+    });
+}
+
+function updateAppTop() {
     const t = new Date;
-    const utc=("0"+t.getUTCHours()).slice(-2) + ":" + ("0"+t.getUTCMinutes()).slice(-2) + ":" + ("0"+t.getUTCSeconds()).slice(-2);
-    const runningmins=Math.trunc(((t-tStart)/1000) / 60);
-    // update the top banner  
-    document.getElementById("clock").innerHTML=utc + " UTC";
-    document.getElementById("runningMins").value=runningmins;
-    document.getElementById("connectionsIn").value=connectionsAdded-connectionsPurged;
-  }
-  
-  function saveConfig(){
-      console.log("Saving config:");
-      localStorage.setItem('squaresList', JSON.stringify(squaresList));
-      console.log("Saved Squares List: "+squaresList);
-      localStorage.setItem('myCall', JSON.stringify(myCall));
-      console.log("Saved myCall: "+myCall);
-      localStorage.setItem('purgeMinutes', purgeMinutes);
-      console.log("Saved purgeMinutes: "+purgeMinutes);
-  }
-  
-  function loadConfig(){
-    console.log("Loading config data");
-    if(localStorage.getItem('squaresList')){
-      squaresList=JSON.parse(localStorage.getItem('squaresList'));
-      console.log("Loaded squares list");
-    } else {
-      squaresList=defaultSquaresList;
-      console.log("No local config data found for squares list: defaults applied.");
-    }
-    document.getElementById("homeSquaresInput").value=squaresList; 
-    squaresArr=parseSquares(squaresList); // returns uppercase squares, expanded if necessary
-    
-    if(localStorage.getItem('myCall')){
-      myCall=JSON.parse(localStorage.getItem('myCall'));
-      console.log("Loaded myCall " + myCall);
-    } else {
-      console.log("No local config data found for my callsign: defaults applied.");
-      myCall="G1OJS";
-    }
-	document.getElementById("myCallInput").value=myCall;
-	  
-    if(localStorage.getItem('purgeMinutes')){
-      purgeMinutes=localStorage.getItem('purgeMinutes');
-      console.log("Loaded purge mins");
-    } else {
-      purgeMinutes=5;
-    }
-	document.getElementById("purgeMinutesInput").value=purgeMinutes;
+    const utc = ("0" + t.getUTCHours()).slice(-2) + ":" + ("0" + t.getUTCMinutes()).slice(-2) + ":" + ("0" + t.getUTCSeconds()).slice(-2);
+    const runningmins = Math.trunc(((t - tStart) / 1000) / 60);
+    // update the top banner
+    document.getElementById("clock").innerHTML = utc + " UTC";
+    document.getElementById("runningMins").value = runningmins;
+    document.getElementById("connectionsIn").value = connectionsAdded - connectionsPurged;
+}
 
-  }
-     
+function saveConfig() {
+    console.log("Saving config:");
+    localStorage.setItem('squaresList', JSON.stringify(squaresList));
+    console.log("Saved Squares List: " + squaresList);
+    localStorage.setItem('myCall', JSON.stringify(myCall));
+    console.log("Saved myCall: " + myCall);
+    localStorage.setItem('purgeMinutes', purgeMinutes);
+    console.log("Saved purgeMinutes: " + purgeMinutes);
+}
+
+function loadConfig() {
+    console.log("Loading config data");
+    if (localStorage.getItem('squaresList')) {
+        squaresList = JSON.parse(localStorage.getItem('squaresList'));
+        console.log("Loaded squares list");
+    } else {
+        squaresList = defaultSquaresList;
+        console.log("No local config data found for squares list: defaults applied.");
+    }
+    document.getElementById("homeSquaresInput").value = squaresList;
+    squaresArr = parseSquares(squaresList); // returns uppercase squares, expanded if necessary
+
+    if (localStorage.getItem('myCall')) {
+        myCall = JSON.parse(localStorage.getItem('myCall'));
+        console.log("Loaded myCall " + myCall);
+    } else {
+        console.log("No local config data found for my callsign: defaults applied.");
+        myCall = "G1OJS";
+    }
+    document.getElementById("myCallInput").value = myCall;
+
+    if (localStorage.getItem('purgeMinutes')) {
+        purgeMinutes = localStorage.getItem('purgeMinutes');
+        console.log("Loaded purge mins");
+    } else {
+        purgeMinutes = 5;
+    }
+    document.getElementById("purgeMinutesInput").value = purgeMinutes;
+
+}
 </script>
 
 </body>
