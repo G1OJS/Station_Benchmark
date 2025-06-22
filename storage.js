@@ -8,6 +8,7 @@ export var myCall;
 
 import {parseSquares} from './geo.js';
 import {writeStatsForAllBands} from './ui.js';
+import {purgeConnections} from './eng.js';
 
 export function updateMyCall(event) {
     myCall = document.getElementById('myCallInput').value;
