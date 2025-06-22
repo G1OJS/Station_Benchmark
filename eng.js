@@ -54,27 +54,22 @@ export function addSpotToConnectivityMap(spot){
 
 
 export function purgeConnections() {
-	console.log("Purging old connections");
+//	console.log("Purging old connections");
 	for (const band in connectivity_Band_Mode_HomeCall) {
-		console.log("Purging old connections for "+ band);
 		for (const mode in connectivity_Band_Mode_HomeCall[band]) {
-	     	console.log("Purging old connections for "+ mode);
 			for (const dir of["Tx", "Rx"]) {
-     	     	console.log("Purging old connections for "+ dir);
 				const calls = connectivity_Band_Mode_HomeCall[band][mode][dir];
 				for (const homeCall in calls) {
 					const others = calls[homeCall];
 					const toDelete = [];
-					console.log("Purging old connections for "+ homeCall);
 					for (const otherCall in others) {
-    const cutoff = Date.now() / 1000 - 60 * purgeMinutes;
+						const cutoff = Date.now() / 1000 - 60 * purgeMinutes;
 						if (others[otherCall] < cutoff) {
 							toDelete.push(otherCall);
 						}
 					}
-					console.log("Deleting " + toDelete.length);
-					toDelete.forEach(otherCall => delete others[otherCall]);
-					
+//					console.log("Deleting " + toDelete.length);
+					toDelete.forEach(otherCall => delete others[otherCall]);					
 					if (Object.keys(others).length === 0) {
 						delete calls[homeCall];
 					}
