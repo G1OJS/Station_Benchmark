@@ -2,15 +2,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Benchmark My Station V1.0.0</title>
+<title>Station Benchmark V1.0.0</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css" /> 
+
 </head>
 <body>
 <div id="app">
-    <div id='appTitle'>Benchmark My Station</div>
+    <div id='appTitle'>Station Benchmark</div>
     <div id="appTop">
       <div>
       <output id='clock'></output><br><span class='notesText'>Running for <output id='runningMins'></output> minutes</span>
@@ -35,17 +38,18 @@
 			         title='Number of minutes after which spots are deleted from database'>
 		   </label>
         </fieldset>
+
         <fieldset id=modeSelect >
          <legend>Mode</legend>
          <!-- written by script -->
         </fieldset>
      </div>
    </div>
-   <div id="innerScreen">
-     <div class="innerPanel" id="bandsContainer">
+   <div id="mainContent">
+     <div id="outputGridsContainer"></div>
    </div>
 
-   <div id="creditsGrid">
+   <div id="footer">
         <div>
             Javascript & HTML developed by Alan Robinson:<br>
             <a href='https://www.qrz.com/db/G1OJS'>G1OJS @QRZ.com</a><br>
