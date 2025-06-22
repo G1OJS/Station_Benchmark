@@ -3,7 +3,7 @@ const defaultCall="G1OJS";
 const defaultPurgeMins=20;
 export var squaresArr = []; // contains the full list of every square (level 4, 6, 8, 10) that we want to watch, generated from squaresList
 var squaresList = ""; // the human-firendly list of squares to watch
-var purgeMinutes;
+export var purgeMinutes;
 export var myCall;
 
 import {parseSquares} from './geo.js';

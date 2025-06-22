@@ -12,8 +12,8 @@ export function updateClock() {
     const t = new Date;
     const utc = ("0" + t.getUTCHours()).slice(-2) + ":" + ("0" + t.getUTCMinutes()).slice(-2) + ":" + ("0" + t.getUTCSeconds()).slice(-2);
     const runningmins = Math.trunc(((t - tStart) / 1000) / 60);
-    // update the top banner
     document.getElementById("clock").innerHTML = utc + " UTC";
+    document.getElementById("runningMins").innerHTML = runningmins;
 	document.getElementById("connectionsIn").innerHTML = ENG.countAllTimestamps();
 }
 

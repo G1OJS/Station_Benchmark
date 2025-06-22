@@ -2,6 +2,7 @@
 export var connectivity_Band_Mode_HomeCall = {};
 
 import * as GEO from './geo.js';
+import {purgeMinutes} from './storage.js';
 
 
 export function addSpotToConnectivityMap(spot){
@@ -52,28 +53,35 @@ export function addSpotToConnectivityMap(spot){
 }
 
 
-function purgeConnections() {
-    const cutoff = Math.floor(Date.now() / 1000) - 60 * purgeMinutes;
-
-    for (const band in connectivity_Band_Mode_HomeCall) {
-        for (const mode in connectivity_Band_Mode_HomeCall[band]) {
-            for (const dir of["Tx", "Rx"]) {
-                const calls = connectivity_Band_Mode_HomeCall[band][mode][dir];
-                for (const homeCall in calls) {
-                    for (const otherCall in calls[homeCall]) {
-                        if (calls[homeCall][otherCall] < cutoff) {
-                            delete calls[homeCall][otherCall];
-                        }
-                    }
-                    // Clean up empty homeCall buckets
-                    if (Object.keys(calls[homeCall]).length === 0) {
-                        delete calls[homeCall];
-                    }
-                }
-            }
-
-        }
-    }
+export function purgeConnections() {
+	console.log("Purging old connections");
+	for (const band in connectivity_Band_Mode_HomeCall) {
+		console.log("Purging old connections for "+ band);
+		for (const mode in connectivity_Band_Mode_HomeCall[band]) {
+	     	console.log("Purging old connections for "+ mode);
+			for (const dir of["Tx", "Rx"]) {
+     	     	console.log("Purging old connections for "+ dir);
+				const calls = connectivity_Band_Mode_HomeCall[band][mode][dir];
+				for (const homeCall in calls) {
+					const others = calls[homeCall];
+					const toDelete = [];
+					console.log("Purging old connections for "+ homeCall);
+					for (const otherCall in others) {
+    const cutoff = Date.now() / 1000 - 60 * purgeMinutes;
+						if (others[otherCall] < cutoff) {
+							toDelete.push(otherCall);
+						}
+					}
+					console.log("Deleting " + toDelete.length);
+					toDelete.forEach(otherCall => delete others[otherCall]);
+					
+					if (Object.keys(others).length === 0) {
+						delete calls[homeCall];
+					}
+				}
+			}
+		}
+	}
 }
 
 
