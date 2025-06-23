@@ -60,12 +60,12 @@ export function writeStatsForAllBands() {
 
     const activeBands = Object.keys(ENG.connectivity_Band_Mode_HomeCall).sort((a, b) => wavelength(b) - wavelength(a));
  
-    HTML = "<div class='outputContainer'><h3>Transmitting</h3>";
+    HTML = "<h3>Transmitting " + watchedMode + "</h3><div class='outputContainer transmit'>";
     writeStatsRowLabels();
     activeBands.forEach(band => writeStatsForThisBand(band, "Tx"));
     HTML += "</div>";
 	
-    HTML += "<div class='outputContainer'><h3>Receiving</h3>";
+    HTML += "<h3>Receiving " + watchedMode + "</h3><div class='outputContainer receive'>";
     writeStatsRowLabels();
     activeBands.forEach(band => writeStatsForThisBand(band, "Rx"));
     HTML += "</div>";

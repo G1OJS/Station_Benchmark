@@ -15,35 +15,28 @@
 <div id="app" class="paper-primary">
     <h1>Station Benchmark</h1>
     <div id="ribbon" class="text-sm">
-		<div>
 		<fieldset>
 		<legend>Info</legend>
 		  <output id="clock" class='clock'></output><br>
 		  <span>Running for <output id="runningMins"></output> minutes</span><br>
 		  <span><output id="connectionsIn"></output> connections in database</span>
 		</fieldset>
-		</div>
-	
-		<fieldset class="text-sm" >
-			<legend>Settings</legend>
-			<div id='settingsBox'>
-				<div><label class="settings-label">My Callsign</label></div>
-					<div><input class ='settings-input' id='myCallInput' type="text" title='Your callsign'></div>
-					<div><label class="settings-label">Home Square(s)</label></div>
-					<div><input class = 'settings-input' id='homeSquaresInput' type="text" 
-						 title='The grid squares containing the other stations you want to benchmark against.'
+		<fieldset id='settingsBox' class="text-sm" >
+		<legend>Settings</legend>
+			<div class = 'settings-label'>My Callsign</div>
+			<div><input class = 'settings-input' id='myCallInput' type="text" title='Your callsign'></div>
+			<div><label class = 'settings-label'>Home Square(s)</label></div>
+			<div><input class = 'settings-input' id='homeSquaresInput' type="text" 
+						 title ='The grid squares containing the other stations you want to benchmark against.'
 						 +'&#10;Enter a list containing for e.g. JO01, IO91ju, JO21:53, IO90bg:kl'></div>
-					<div><label class="settings-label">Purge minutes</label></div>
-					<div><input class = 'settings-input' id='purgeMinutesInput' type="number" min="1" max="60"
-						 title='Number of minutes after which spots are deleted from database'></div>
-			</div>
+			<div><label class = 'settings-label'>Purge minutes</label></div>
+			<div><input class = 'settings-input' id='purgeMinutesInput' type="number" min="1" max="60"
+						 title = 'Number of minutes after which spots are deleted from database'></div>
 		</fieldset>
-		<div>
-			<fieldset id='modeSelectBox' class="text-sm" >
-			 <legend>Mode</legend>
-			 <!-- written by script -->
-			</fieldset>
-		</div>
+		<fieldset id='modeSelectBox' class="text-sm" >
+		<legend>Mode</legend>
+			<!-- written by script -->
+		</fieldset>
    </div>
    
    <div id="mainContent" class="paper" >
