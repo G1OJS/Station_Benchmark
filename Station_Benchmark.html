@@ -8,71 +8,72 @@
 <meta http-equiv="Expires" content="0"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css" /> 
+<link rel="stylesheet" href="./src/style.css" /> 
 
 </head>
 <body>
-<div id="app">
-    <div id='appTitle'>Station Benchmark</div>
-    <div id="appTop">
-      <div>
-      <output id='clock'></output><br><span class='notesText'>Running for <output id='runningMins'></output> minutes</span>
-      <br><span class='notesText'><output id='connectionsIn'></output> connections in database </span>
-     </div>
-     <div>               
-        <fieldset>
-		  <legend>Settings</legend>
-		   <label class='settings-row'>
-		      <span class="settings-label">My Callsign</span>
-			  <input class = 'settings-input' id='myCallInput' type="text" 
-			         title='Your callsign'>
-		   </label>
-		   <label class='settings-row'>
-		      <span class="settings-label">Home Square(s)</span>
-		      <input class = 'settings-input' id='homeSquaresInput' type="text" 
-			         title='The grid squares containing the other stations you want to benchmark against.&#10;Enter a list containing for e.g. JO01, IO91ju, JO21:53, IO90bg:kl'>
-		   </label>
-		   <label class='settings-row'>
-		      <span class="settings-label">Purge minutes</span>
-		      <input class = 'settings-input' id='purgeMinutesInput' type="number" min="1" max="60"
-			         title='Number of minutes after which spots are deleted from database'>
-		   </label>
-        </fieldset>
-
-        <fieldset id=modeSelect >
-         <legend>Mode</legend>
-         <!-- written by script -->
-        </fieldset>
-     </div>
+<div id="app" class="paper">
+    <h1>Station Benchmark</h1>
+    <div id="ribbon" class="text-sm">
+		<div class="paper clock-panel">
+		  <output id="clock"></output><br>
+		  <span>Running for <output id="runningMins"></output> minutes</span>
+		  <span><output id="connectionsIn"></output> connections in database</span>
+		</div>
+		<div>               
+			<fieldset class="text-sm" >
+			  <legend>Settings</legend>
+			   <div class='settings-row'>
+				  <label class="settings-label">My Callsign</label>
+				  <input class = 'settings-input' id='myCallInput' type="text"
+						 title='Your callsign'>
+			   </div>
+			   <div class='settings-row'>
+				  <label class="settings-label">Home Square(s)</label>
+				  <input class = 'settings-input' id='homeSquaresInput' type="text" 
+						 title='The grid squares containing the other stations you want to benchmark against.&#10;Enter a list containing for e.g. JO01, IO91ju, JO21:53, IO90bg:kl'>
+			   </div>
+			   <div class='settings-row'>
+				  <label class="settings-label">Purge minutes</label>
+				  <input class = 'settings-input' id='purgeMinutesInput' type="number" min="1" max="60"
+						 title='Number of minutes after which spots are deleted from database'>
+			   </div>
+			</fieldset>
+			<fieldset id='modeSelect' class="text-sm" >
+			 <legend>Mode</legend>
+			 <!-- written by script -->
+			</fieldset>
+		</div>
    </div>
+   
    <div id="mainContent">
-     <div id="outputGridsContainer"></div>
+     <div id="outputGridsContainer" class="paper" >
    </div>
 
-   <div id="footer">
+   <div id="footer" class="text-muted text-xsm">
         <div>
             Javascript & HTML developed by Alan Robinson:<br>
             <a href='https://www.qrz.com/db/G1OJS'>G1OJS @QRZ.com</a><br>
             <a href='https://www.instagram.com/g1ojs_alan/'>G1OJS_alan@instagram.com</a><br>
             <a href='https://g1ojs.github.io/'>G1OJS Ham Radio @GitHub</a><br>
-           <a href="mailto:G1OJS@yahoo.com">G1OJS@yahoo.com</a>
-       </div>
-       <div>
+			<a href="mailto:G1OJS@yahoo.com">G1OJS@yahoo.com</a>
+		</div>
+		<div>
             Thanks to:<br>
             Philip Gladstone - N1DQ for <a href='https://pskreporter.info/'>Pskreporter.info</a><br>
             Tom Fanning - M0LTE for <a href='http://mqtt.pskreporter.info/'>mqtt.pskreporter.info</a>, the MQTT feed for this app<br>
             <a href='https://www.unpkg.com/browse/mqtt@5.10.1/README.md'>www.unpkg.com</a> for the cdn MQTT library used here <a href='https://www.unpkg.com/browse/mqtt@5.10.1/LICENSE.md'>MIT license</a>
-       </div>
-       <div>
+		</div>
+		<div>
           License: <a href='https://github.com/G1OJS/BandOpticon/blob/main/LICENSE'>MIT license</a><br>
           GitHub: <a href='https://github.com/G1OJS/Station_Benchmark/'>github.com/G1OJS/Station_Benchmark</a><br>
-	</div>
+		</div>
     </div>
 	
 </div> 
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-<script type='module' src='main.js'></script>
+<script type='module' src='./src/main.js'></script>
 
 
 </body>
