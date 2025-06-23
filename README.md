@@ -6,4 +6,4 @@ There's nothing to download, it simply runs in your web browser.
 Click [here](https://g1ojs.github.io/Station_Benchmark/Station_Benchmark.html) to load the page & give it a try.
 
 
-![Capture](https://github.com/user-attachments/assets/0192607f-2388-45a6-bcec-dac5074a6b10)
+![Capture](https://github.com/user-attachments/assets/450aaaa7-9a9f-4b97-8a10-5b87c9fe21b1)
