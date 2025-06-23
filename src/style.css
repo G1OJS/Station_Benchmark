@@ -2,7 +2,7 @@
   --background-color: #f7f9fc;
   --main-font-color: #333;
   --text-dark: #333;
-  --main-paper-color: #5c7cfa;
+  --main-paper-color: #eeeeee;
   --light-paper-color: #ffffff;
   --border-color: #ccc;
 
@@ -24,6 +24,11 @@
   --error-bg: #fee;
 }
 
+/* Apply border-box sizing to all elements */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   background: var(--background-color);
   color: var(--main-font-color);
@@ -41,6 +46,19 @@ p {
   margin: 0 0 var(--spacing) 0;
 }
 
+fieldset {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing);
+}
+
+legend {
+  padding: 0 var(--spacing-sm);
+  font-weight: bold;
+  color: var(--main-font-color);
+  font-size: var(--font-size-sm);
+}
 
 /* Typography utility classes */
 .text-xsm   { font-size: var(--font-size-xsm); }
@@ -62,15 +80,9 @@ p {
 
 .paper-primary {
   background: var(--main-paper-color);
-  color: white;
   border-radius: var(--border-radius);
   padding: var(--spacing);
   margin-bottom: var(--spacing);
-}
-
-/* Apply border-box sizing to all elements */
-*, *::before, *::after {
-  box-sizing: border-box;
 }
 
 #app {
@@ -79,47 +91,14 @@ p {
   padding-top: 0;
 }
 
-#ribbon { display: grid; grid-template-columns: max-content auto; grid-template-rows: auto; gap: 0.5rem;}		  
-		  
-.clock-panel {
-  display: inline-block;       /* keep size to content */
-  font-size: var(--font-size-lg);
-  line-height: 1.4;
-  text-align: center;
-}
-
-.clock-panel output {
-  font-weight: bold;
-}
-
-.clock-panel span {
-  display: block;
-  font-size: var(--font-size-sm);
-  color: var(--main-font-color);
-  margin-top: 0.25rem;
-}
-
-
-fieldset {
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-sm);
-  margin-bottom: var(--spacing);
-  width:fit-content; 
-  float:left;
-}
-
-legend {
-  padding: 0 var(--spacing-sm);
-  font-weight: bold;
-  color: var(--main-font-color);
-  font-size: var(--font-size-sm);
-}
-
-.settings-row {display: grid; grid-template-columns: 1fr 2fr; gap: var(--spacing-sm); }
-.settings-label {font-size: var(--font-size-base);  font-weight: 600; color: var(--main-font-color); }
-.settings-input{font-size: var(--font-size-base); border: 1px solid var(--border-color); border-radius:6px;}
+#ribbon { display: grid; grid-template-columns: max-content max-content auto; gap: var(--spacing-sm); align-items:stretch;}		  
+#infoBox {}
+.clock {font-size: var(--font-size-lg); font-weight:600;}
+#settingsBox {display: grid; grid-template-columns: max-content auto; grid-template-rows: auto auto auto;} 
+.settings-label {font-size: var(--font-size-base);  font-weight: 600; color: var(--main-font-color); padding-right:3px; }
+.settings-input{font-size: var(--font-size-sm); border: 1px solid var(--border-color); border-radius:6px;}
 .settings-input:invalid {border-color: #e66;background-color: #fee;}
+#modeSelectBox {width:100%}
 
 .modeSelectBtn {
   font-size: var(--font-size-sm);
@@ -133,22 +112,24 @@ legend {
 }
 
 .modeSelectBtn.active {
-  border-color: var(--main-paper-color);
-  color: var(--main-paper-color);
+  border-width:1px;
   font-weight: 600;
+  color:blue;
 }
 .modeSelectBtn:hover:not(.active) {
   border-color: var(--main-paper-color);
-  color: var(--main-paper-color);
+  color: light-blue;
 }
 
 
 
 #mainContent { display: grid; grid-template-columns:  1fr; grid-template-rows: 1fr; }
-.outputGrid {display: grid; grid-template-columns:max-content; grid-template-rows: auto auto auto auto;  }  
-.outputGrid > div {background-color:var(--light-paper-color);  border-color:var(--border-color); min-height:10px; }
-.outputGrid > .TopRow  {background-color:lightgrey; font-weight:bold;}
-.outputGrid > .zero {color: #ccc; font-style: italic;}
+#outputContainer {}
+.outputColumn {display: grid; grid-template-columns:max-content; float:left;  margin:1px;}  
+.outputColumn > div {background-color:var(--light-paper-color);  border-color:var(--border-color); text-align:center; padding-left:var(--spacing-sm); padding-right:var(--spacing-sm);}
+.outputColumn > .firstColumn {font-weight:600; text-align:left; padding-left:var(--spacing-xs);}
+.outputColumn > .topRow {background-color:lightgrey; font-weight:bold;}
+.outputColumn > .zero {color: #ccc; font-style: italic;}
 
 #footer {display: grid; grid-template-columns: auto auto auto; grid-template-rows: auto; gap: var(--spacing-sm); }
 a:link {color: #888;}
