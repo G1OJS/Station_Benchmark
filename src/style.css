@@ -54,6 +54,7 @@ fieldset {
   padding: var(--spacing-sm);
   margin-bottom: var(--spacing);
   min-height:100px;
+  max-width:100%;
   border-color:var(--controls-color);
   box-shadow: var(--box-shadow);
 }
@@ -99,8 +100,7 @@ input {border:none;}
   padding-top: 0;
 }
 
-#ribbon {display: grid; grid-template-columns: max-content max-content auto; gap: var(--spacing-sm); }		  
-#infoBox {}
+#ribbon {display: grid; grid-template-columns: max-content max-content auto; gap: var(--spacing-sm); padding-right:2px}
 .clock {font-size: var(--font-size-lg); font-weight:600;}
 #settingsBox {display: grid; grid-template-columns: max-content auto; grid-template-rows: auto auto auto;} 
 .settings-label { font-size: var(--font-size-sm);  font-weight: 600; 
