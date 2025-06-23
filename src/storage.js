@@ -2,7 +2,7 @@ const defaultSquaresList = "IO50:99,JO01,JO02,JO03"; // used if squaresList valu
 const defaultCall="G1OJS";
 const defaultPurgeMins=20;
 export var squaresArr = []; // contains the full list of every square (level 4, 6, 8, 10) that we want to watch, generated from squaresList
-var squaresList = ""; // the human-firendly list of squares to watch
+export var squaresList = ""; // the human-firendly list of squares to watch
 export var purgeMinutes;
 export var myCall;
 
@@ -23,6 +23,7 @@ export function updateSquaresList(event) {
     let newSquaresList = input.value; // potentially mixed case but that's OK
 	console.log("squares list updated to " + newSquaresList);
     squaresArr = parseSquares(newSquaresList); // returns uppercase squares, expanded if necessary
+	squaresList = newSquaresList;
     if (squaresArr == "Err") {
         input.setCustomValidity("Invalid grid square format");
     } else {
