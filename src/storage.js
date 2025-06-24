@@ -13,6 +13,8 @@ import {connectToFeed} from './mqtt.js';
 
 export function updateMyCall(event) {
     myCall = document.getElementById('myCallInput').value;
+	myCall = myCall.toUpperCase();
+	document.getElementById('myCallInput').value = myCall;
     console.log("my Call updated to " + myCall);
     saveConfig();
     writeStatsForAllBands();
