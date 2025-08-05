@@ -1,9 +1,16 @@
-# Station_Benchmark
-Benchmark your ham radio station Tx and Rx performance against other local stations.
+# Station Benchmark (Archived)
 
-There's nothing to download, it simply runs in your web browser.
+🚧 This project has been **archived** and is no longer maintained here.
 
-Click [here](https://g1ojs.github.io/Station_Benchmark/Station_Benchmark.html) to load the page & give it a try.
+📦 **Station Benchmark is now part of [BandOpticon](https://github.com/g1ojs/BandOpticon)**.
+
+👉 The new web app is here:  
+[https://g1ojs.github.io/BandOpticon/BandOpticon](https://g1ojs.github.io/BandOpticon/BandOpticon)
+
+---
+
+This repository is retained for historical reference only and may be deleted soon.
+
 
 
 ![Capture](https://github.com/user-attachments/assets/450aaaa7-9a9f-4b97-8a10-5b87c9fe21b1)
